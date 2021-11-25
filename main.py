@@ -3,24 +3,29 @@ import pyperclip
 from datetime import *
 
 FILENAME = 'todo.dat'
-
+INDENT = '    '
 
 class ToDo:
-    def __init__(self, t_d, start='', end='', priority='', comment='', duration='', status='', child_todo=[]):
+    def __init__(self, t_d, start='', end='', priority='', comment='', duration='', status=''):
         self.td = t_d
         if start != '':
-            self.start = datetime.strptime(start, '%d/%m/%y %H-%M')
+            if len(start) == 8:
+                self.start = datetime.strptime(start, '%d/%m/%y')
+            else:
+                self.start = datetime.strptime(start, '%d/%m/%y %H-%M')
         else:
             self.start = start
         if end != '':
-            self.end = datetime.strptime(end, '%d/%m/%y %H-%M')
+            if len(end) == 8:
+                self.end = datetime.strptime(end, '%d/%m/%y')
+            else:
+                self.end = datetime.strptime(end, '%d/%m/%y %H-%M')
         else:
             self.end = end
         if priority == '+':
             self.priority = True
         else:
             self.priority = False
-        self.parent_td = parent_td
         self.comment = comment
         if duration == '':
             self.duration = 0.0
@@ -32,49 +37,51 @@ class ToDo:
             self.status = 0
         else:
             self.status = int(status)
-        self.child_todo = child_todo
+        self.child_todo = []
+
+    def add_sub_task(self, todo):
+        self.child_todo.append(todo)
 
     def __str__(self):
+        st_ret = INDENT + '└───' + self.td
+        if self.start != '':
+            st_ret += ' Начало: ' + str(self.start)
+        if self.end != '':
+            st_ret += ' Конец: ' + str(self.end)
         if self.priority:
-            sp = ' Важно!'
-        else:
-            sp = ' '
-        return self.td + '\n' + 'Начало: ' + str(self.start) + ' Конец: ' + str(
-            self.end) + sp + '\n' + 'Примечание: ' + self.comment
+            st_ret += ' Важно!'
+        if self.comment != '':
+            st_ret += ' Примечание: ' + self.comment
+        st_ret += '\n'
+        if len(self.child_todo) != 0:
+            for n, i in enumerate(self.child_todo):
+                st_ret += str(n) + INDENT + str(i)
+        return st_ret
 
 
 class Store:
     def __init__(self, filename):
         self.filename = filename
-        self.list_todo = []
 
-    def save_todo(self):
+    def save_todo(self, todo: ToDo):
         with open(self.filename, 'wb') as file:
-            pickle.dump(self.list_todo, file)
+            pickle.dump(todo, file)
 
     def load_todo(self):
         with open(self.filename, 'rb') as file:
-            self.list_todo = pickle.load(file)
-
-    def add_todo(self, t_d: ToDo):
-        self.list_todo.append(t_d)
-
-    def view(self, num):
-        print(self.list_todo[num])
-
-    def __str__(self):
-        string_to_print = ''
-        for nu, i in enumerate(self.list_todo):
-            string_to_print += '----' + str(nu) + '----' + '\n' + str(i) + '\n' * 2
-        return string_to_print
-
+            return pickle.load(file)
 
 if __name__ == '__main__':
     s_t_d = Store(FILENAME)
-    prompt = 'todo>'
-    current_todo = s_t_d
+    td = ToDo('Януш')
+    current = []
     while True:
-        p = input(prompt)
+        current_todo = td
+        prompt = td.td
+        for s_pr in current:
+            current_todo = current_todo.child_todo[s_pr]
+            prompt += '/'+current_todo.td
+        p = input(prompt+'>')
         if p == '+':
             n = input('Введите задачу: ')
             s = input('Дата начала: ')
@@ -83,20 +90,23 @@ if __name__ == '__main__':
             c = input('Примечание: ')
             du = input('Трудоёмкость: ')
             st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
-            td = ToDo(n, s, e, pr, c, du, st)
-            s_t_d.add_todo(td)
-            print('Добавлено', td)
+            new_task = ToDo(n, s, e, pr, c, du, st)
+            current_todo.add_sub_task(new_task)
         elif p == 'с':
-            s_t_d.save_todo()
+            s_t_d.save_todo(td)
         elif p == 'о':
-            s_t_d.load_todo()
+            td = s_t_d.load_todo()
         elif p == 'п':
-            print(s_t_d)
+            print(current_todo)
         elif p == 'в':
-            s_t_d.save_todo()
+            s_t_d.save_todo(td)
             break
         elif p.isdigit():
-            print(s_t_d.view(int(p)))
-            prompt = 'todo/'+p+'>'
+            p = int(p)
+            if (len(current_todo.child_todo)-1) >= p:
+                current.append(p)
+        elif p == '..':
+            if len(current) > 0:
+                current.pop()
         else:
             print('Недопустимая команда!')
