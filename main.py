@@ -6,7 +6,7 @@ FILENAME = 'todo.dat'
 INDENT = '    '
 
 class ToDo:
-    def __init__(self, t_d, start='', end='', priority='', comment='', duration='', status=''):
+    def __init__(self, t_d, start='', end='', priority='', comment='', duration='', status='', hard=''):
         self.td = t_d
         if start != '':
             if len(start) == 8:
@@ -38,18 +38,24 @@ class ToDo:
         else:
             self.status = int(status)
         self.child_todo = []
+        if hard == '+':
+            self.hard = True
+        else:
+            self.hard = False
 
     def add_sub_task(self, todo):
         self.child_todo.append(todo)
 
     def __str__(self):
-        st_ret = INDENT + '└───' + self.td
+        st_ret = '└───' + self.td
         if self.start != '':
             st_ret += ' Начало: ' + str(self.start)
         if self.end != '':
             st_ret += ' Конец: ' + str(self.end)
         if self.priority:
             st_ret += ' Важно!'
+        if self.hard:
+            st_ret += ' Жёсткая '
         if self.comment != '':
             st_ret += ' Примечание: ' + self.comment
         st_ret += '\n'
@@ -84,13 +90,20 @@ if __name__ == '__main__':
         p = input(prompt+'>')
         if p == '+':
             n = input('Введите задачу: ')
+            h = input('Жёсткая задача?(+): ')
+            if h == '+':
+                st = ''
+                pr = ''
+                du = ''
+            else:
+                st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
+                pr = input('Важное?(+)')
+                du = input('Трудоёмкость: ')
             s = input('Дата начала: ')
             e = input('Дата конца: ')
-            pr = input('Важное?(+)')
             c = input('Примечание: ')
-            du = input('Трудоёмкость: ')
-            st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
-            new_task = ToDo(n, s, e, pr, c, du, st)
+
+            new_task = ToDo(n, s, e, pr, c, du, st, h)
             current_todo.add_sub_task(new_task)
         elif p == 'с':
             s_t_d.save_todo(td)
