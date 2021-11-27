@@ -47,7 +47,7 @@ class ToDo:
         self.child_todo.append(todo)
 
     def __str__(self):
-        st_ret = '└───' + self.td
+        st_ret = '\n' + self.td
         if self.start != '':
             st_ret += ' Начало: ' + str(self.start)
         if self.end != '':
@@ -58,10 +58,11 @@ class ToDo:
             st_ret += ' Жёсткая '
         if self.comment != '':
             st_ret += ' Примечание: ' + self.comment
-        st_ret += '\n'
         if len(self.child_todo) != 0:
             for n, i in enumerate(self.child_todo):
-                st_ret += str(n) + INDENT + str(i)
+                st_ed = str(i)
+                st_ret += '\n' + '└─' + str(n+1)+ '──' + st_ed[5:]
+        st_ret = st_ret.replace('\n', '\n    ')
         return st_ret
 
 
@@ -115,7 +116,7 @@ if __name__ == '__main__':
             s_t_d.save_todo(td)
             break
         elif p.isdigit():
-            p = int(p)
+            p = int(p)-1
             if (len(current_todo.child_todo)-1) >= p:
                 current.append(p)
         elif p == '..':
