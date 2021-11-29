@@ -1,9 +1,6 @@
 import datetime
 import pickle
-import pyperclip
 from datetime import *
-import calendar
-import os
 
 FILENAME = 'todo.dat'
 INDENT = '    '
@@ -23,6 +20,11 @@ class Lables:
             if l < ln:
                 ls.append(self.lables_list[l])
         return ls
+
+class Attachments:
+    def __init__(self):
+        '''Создание объекта хранения вложений'''
+        self.attachments = []
 
 class ToDo:
     def __init__(self, t_d, start='', end='', priority='', comment='', duration='', status='', hard='', lables=[], attachment=[]):
@@ -145,7 +147,6 @@ class ToDo:
         st_ret = st_ret.replace('\n', '\n    ')
         return st_ret
 
-
 class Store:
     def __init__(self, filename):
         '''Создаёт объект умеющий хранить задачи в бинарном файле с именем filename.'''
@@ -161,74 +162,85 @@ class Store:
         with open(self.filename, 'rb') as file:
             return pickle.load(file)
 
+class cmd:
+    def __init__(self):
+        '''Создаёт объект командной строки'''
+        self.current = []
+
+    def mainloop(self):
+        '''Главный цикл обработки команд'''
+        while True:
+            current_todo = td
+            prompt = td.td
+            for s_pr in current:
+                current_todo = current_todo.child_todo[s_pr]
+                prompt += '/' + current_todo.td
+            p = input(prompt + '>')
+            if p == '+':
+                n = input('Введите задачу: ')
+                h = input('Жёсткая задача?(+): ')
+                if h == '+':
+                    st = ''
+                    pr = ''
+                    du = ''
+                else:
+                    st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
+                    pr = input('Важное?(+)')
+                    du = input('Трудоёмкость: ')
+                s = input('Дата начала: ')
+                e = input('Дата конца: ')
+                c = input('Примечание: ')
+
+                new_task = ToDo(n, s, e, pr, c, du, st, h)
+                current_todo.add_sub_task(new_task)
+            elif p == 'с':
+                s_t_d.save_todo(td)
+            elif p == 'о':
+                td = s_t_d.load_todo()
+            elif p == 'п':
+                print(current_todo.get_tasks())
+            elif p == 'в':
+                s_t_d.save_todo(td)
+                break
+            elif p.isdigit():
+                p = int(p) - 1
+                if (len(current_todo.child_todo) - 1) >= p:
+                    current.append(p)
+            elif p == '..':
+                if len(current) > 0:
+                    current.pop()
+            elif p == 'д':
+                dt = datetime.now()
+                for task in td.get_tasks_frame(dt.date(), dt.date()):
+                    if task != None:
+                        print(task)
+            elif p == 'з':
+                dt = datetime.now()
+                dt = dt.date() + timedelta(1)
+                for task in td.get_tasks_frame(dt, dt):
+                    if task != None:
+                        print(task)
+            elif p == 'н':
+                dt = datetime.now()
+                dt = dt.date()
+                for task in td.get_tasks_frame(dt, dt + timedelta(6)):
+                    if task != None:
+                        print(task)
+            elif p == 'м':
+                dt = datetime.now()
+                dt = dt.date()
+                for task in td.get_tasks_frame(dt, dt + timedelta(30)):
+                    if task != None:
+                        print(task)
+            elif p == 'ст':
+                current_todo.change_status(
+                    int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')))
+            else:
+                print('Недопустимая команда!')
+
+
 if __name__ == '__main__':
     s_t_d = Store(FILENAME)
     td = ToDo('Януш')
     current = []
-    while True:
-        current_todo = td
-        prompt = td.td
-        for s_pr in current:
-            current_todo = current_todo.child_todo[s_pr]
-            prompt += '/'+current_todo.td
-        p = input(prompt+'>')
-        if p == '+':
-            n = input('Введите задачу: ')
-            h = input('Жёсткая задача?(+): ')
-            if h == '+':
-                st = ''
-                pr = ''
-                du = ''
-            else:
-                st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
-                pr = input('Важное?(+)')
-                du = input('Трудоёмкость: ')
-            s = input('Дата начала: ')
-            e = input('Дата конца: ')
-            c = input('Примечание: ')
 
-            new_task = ToDo(n, s, e, pr, c, du, st, h)
-            current_todo.add_sub_task(new_task)
-        elif p == 'с':
-            s_t_d.save_todo(td)
-        elif p == 'о':
-            td = s_t_d.load_todo()
-        elif p == 'п':
-            print(current_todo.get_tasks())
-        elif p == 'в':
-            s_t_d.save_todo(td)
-            break
-        elif p.isdigit():
-            p = int(p)-1
-            if (len(current_todo.child_todo)-1) >= p:
-                current.append(p)
-        elif p == '..':
-            if len(current) > 0:
-                current.pop()
-        elif p == 'д':
-            dt = datetime.now()
-            for task in td.get_tasks_frame(dt.date(), dt.date()):
-                if task != None:
-                    print(task)
-        elif p == 'з':
-            dt = datetime.now()
-            dt = dt.date() + timedelta(1)
-            for task in td.get_tasks_frame(dt, dt):
-                if task != None:
-                    print(task)
-        elif p == 'н':
-            dt = datetime.now()
-            dt = dt.date()
-            for task in td.get_tasks_frame(dt, dt + timedelta(6)):
-                if task != None:
-                    print(task)
-        elif p == 'м':
-            dt = datetime.now()
-            dt = dt.date()
-            for task in td.get_tasks_frame(dt, dt + timedelta(30)):
-                if task != None:
-                    print(task)
-        elif p == 'ст':
-            current_todo.change_status(int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')))
-        else:
-            print('Недопустимая команда!')
