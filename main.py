@@ -3,7 +3,9 @@ import pickle
 from datetime import *
 
 FILENAME = 'todo.dat'
+FILENORM = 'norm.dat'
 INDENT = '    '
+
 
 class Lables:
     def __init__(self):
@@ -16,27 +18,35 @@ class Lables:
     def get(self, list_num):
         ls = []
         ln = len(self.lables_list)
-        for l in list_num:
-            if l < ln:
-                ls.append(self.lables_list[l])
+        for li in list_num:
+            if li < ln:
+                ls.append(self.lables_list[li])
         return ls
+
 
 class Attachments:
     def __init__(self):
-        '''Создание объекта хранения вложений'''
+        """Создание объекта хранения вложений"""
         self.attachments = []
 
-#Константы для класса Task
+
+# Константы для класса Task
 NOREPEAT = 0
 EVERYDAY = 1
-EVERYWEEK = 2
-EVERYMONTH =3
-EVERYYEAR = 4
+EVERYWEEKDAY = 2
+EVERYWEEK = 3
+EVERYMONTH = 4
+EVERYYEAR = 5
+HIGH = True
+LOW = False
+HARD = True
+NO_HARD = False
 
 
 class Task:
-    def __init__(self, t_d='', start='', end='', repeat_mode=NOREPEAT, priority='', comment='', duration='', status='', hard='', lables=[], attachment=[]):
-        '''Создаёт задачу'''
+    def __init__(self, t_d='', start='', end='', repeat_mode=NOREPEAT, priority=LOW, comment='', duration=0.0, status=0,
+                 hard=NO_HARD, lables=[], attachment=[]):
+        """Создаёт задачу"""
         self.td = t_d
         if start != '':
             if len(start) == 8:
@@ -53,21 +63,15 @@ class Task:
                 self.end = datetime.strptime(end, '%d/%m/%y %H-%M')
         else:
             self.end = end
-        if priority == '+':
-            self.priority = True
-        else:
-            self.priority = False
+        if 0 <= repeat_mode <= 5:
+            self.repeat_mode = repeat_mode
+        self.priority = priority
         self.comment = comment
-        if duration == '':
-            self.duration = 0.0
-        elif duration[-1] == 'с':
-            self.duration = int(duration[:-1])*2/60
+        self.duration = duration
+        if 0 <= status <= 3:
+            self.status = status
         else:
-            self.duration = float(duration)
-        if status == '':
-            self.status = 0
-        else:
-            self.status = int(status)
+            print('Неправильный статус.')
         self.child_tasks = List_tasks()
         if hard == '+':
             self.hard = True
@@ -78,10 +82,10 @@ class Task:
         self.attachment = attachment
 
     def add_sub_task(self, task):
-        '''Добавляет подзадачу к задаче'''
+        """Добавляет подзадачу к задаче"""
         self.child_tasks.add_task(task)
 
-#    def get_tasks_range(self, date_start, date_end):
+        #    def get_tasks_range(self, date_start, date_end):
         '''Возвращает список задач, попавших в заданный диапазон дат
         if len(self.child_tasks) > 0:
             list_tasks = []
@@ -93,8 +97,9 @@ class Task:
                         list_tasks.append(sub_task.get_tasks_range(date_start, date_end))
             return list_tasks
 '''
+
     def __str__(self):
-        '''Возвращает через функции print и str данные задачи без вложений в виде строки'''
+        """Возвращает через функции print и str данные задачи без вложений в виде строки"""
         if self.priority:
             prt = 'Важно'
         else:
@@ -109,17 +114,18 @@ class Task:
             sts = 'Выполнена'
         else:
             sts = 'Неправильный статус'
-        st_ret = str(self.start) + '\t' + self.td + '\t' + prt + '\n' + str(self.end) + '\t' + self.comment + '\t' + sts + '\n'+'-'*80
+        st_ret = str(self.start) + '\t' + self.td + '\t' + prt + '\n\t' + str(
+            self.end) + '\t' + self.comment + '\t' + sts + '\n' + '-' * 80
         return st_ret
 
     def change_status(self, status):
-        '''Изменяет статус задачи'''
-        if status >= 0 and status <= 3:
+        """Изменяет статус задачи"""
+        if 0 <= status <= 3:
             self.status = status
         else:
             print('Неверный статус')
 
-#    def get_tasks(self):
+        #    def get_tasks(self):
         '''Возвращает строку задачи и всех вложенных задач. Вложенные задачи имеют номер и отступ
         st_ret = '\n' + self.td
         if self.start != '':
@@ -156,111 +162,165 @@ class Task:
         return st_ret
 '''
 
+
 class List_tasks:
     def __init__(self):
-        '''Создаёт список задач'''
+        """Создаёт список задач"""
         self.tasklist = []
 
     def add_task(self, task: Task):
-        '''Добавляет задачу в список'''
+        """Добавляет задачу в список"""
         self.tasklist.append(task)
 
     def del_task(self, index: int):
-        '''Удаляет задачу из списка по её номеру'''
+        """Удаляет задачу из списка по её номеру"""
         self.tasklist.pop(index)
 
     def get_task(self, index: int):
-        '''Возвращает задачу из списка по её индексу'''
-        if self.not_empty():
+        """Возвращает задачу из списка по её индексу"""
+        if len(self.tasklist) >= index:
             return self.tasklist[index]
 
+    def get_sub_list(self, index: int):
+        """Возвращает список подзадач задачи с индексом index"""
+        tsk = self.get_task(index)
+        return tsk.tasklist
+
     def get_tasks(self):
-        '''Возвращает все задачи списка'''
+        """Возвращает все задачи списка"""
         if self.not_empty():
             return self.tasklist
 
     def not_empty(self):
-        '''Возвращает True если список непустой'''
-        if len(self.tasklist)>0:
+        """Возвращает True если список непустой"""
+        if len(self.tasklist) > 0:
             return True
         else:
             return False
 
-    def get_tasks_range(self, start, end):
-        '''Возвращает список задач, включая вложенные, попадающих в указанный диапазон дат'''
+    def in_range(self, index):
+        """Возвращает True если элемент с номером index есть в списке"""
+        if len(self.tasklist) > index:
+            return True
+        else:
+            return False
+
+    def get_tasks_range(self, start='', end='', status=10):
+        """Возвращает список задач, включая вложенные, попадающих в указанный диапазон дат"""
         if len(self.tasklist) > 0:
             list_tasks = []
             for task in self.tasklist:
-                if task.start.date() <= end and task.end.date() >= start:
+                if task.start == '' and task.end.date() >= start or task.start.date() <= end and task.end == '' or task.start.date() <= end and task.end.date() >= start:
                     list_tasks.append(task)
                 lt = task.child_tasks
                 if lt.not_empty():
-                    list_tasks += lt.get_tasks_range(start, end)
+                    list_tasks += lt.get_tasks_range(start, end, status)
             return list_tasks
+
+
+class Time_norm:
+    def __init__(self):
+        """Создаёт объект хранения норм времни"""
+        self.norm = {}
+
+    def add_norm(self, magnitude: str, norm: float):
+        """Добавляет единицу измерения и её норму времни"""
+        self.norm[magnitude] = norm
+
+    def get_norm(self, magnitude: str):
+        """Возвращает норму времни по величине"""
+        if magnitude in self.norm:
+            return self.norm(magnitude)
+        else:
+            return 1.0
+
 
 class Store:
     def __init__(self, filename):
-        '''Создаёт объект умеющий хранить задачи в бинарном файле с именем filename.'''
+        """Создаёт объект умеющий хранить объекты в бинарном файле с именем filename."""
         self.filename = filename
 
-    def save_todo(self, task_list: List_tasks):
-        '''Сохраняет задачу ч подзадачами в бинарный файл'''
+    def save(self, object_store):
+        """Сохраняет объект в бинарный файл"""
         with open(self.filename, 'wb') as file:
-            pickle.dump(task_list, file)
+            pickle.dump(object_store, file)
 
-    def load_todo(self):
-        '''Читает задачу с подзадачами из бинарного файла'''
+    def load(self):
+        """Читает задачу с подзадачами из бинарного файла"""
         with open(self.filename, 'rb') as file:
             return pickle.load(file)
 
+
 class cmd:
-    def __init__(self, store):
-        '''Создаёт объект командной строки'''
+    def __init__(self, store_task, store_norm, norm):
+        """Создаёт объект командной строки"""
         self.current = []
         self.current_task = Task()
-        self.s_t_d = store
+        self.s_t_d = store_task
+        self.s_n = store_norm
+        self.nm = norm
         self.main_list = List_tasks()
         self.current_list = self.main_list
 
     def mainloop(self):
-        '''Главный цикл обработки команд'''
+        """Главный цикл обработки команд"""
         stop = False
         while not stop:
             prompt = ''
+            self.current_list = self.main_list
             for s_pr in self.current:
                 self.current_task = self.current_list.get_task(s_pr)
+                self.current_list = self.current_task.child_tasks
                 prompt += '/' + self.current_task.td
             p = input(prompt + '>')
             if p == '+':
                 n = input('Введите задачу: ')
                 h = input('Жёсткая задача?(+): ')
                 if h == '+':
-                    st = ''
-                    pr = ''
-                    du = ''
+                    hd = HARD
+                    st = 0
+                    pr = LOW
+                    du = 0.0
                 else:
-                    st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
-                    pr = input('Важное?(+)')
+                    hd = NO_HARD
+                    st = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
+                    if input('Важное?(+)') == '+':
+                        pr = HIGH
+                    else:
+                        pr = LOW
                     du = input('Трудоёмкость: ')
+                    dig = ''
+                    mag = ''
+                    for i in du:
+                        if i.isdigit() or '.':
+                            dig += i
+                        else:
+                            mag += i
+                    du = self.nm.get_norm(mag) * float(dig)
                 s = input('Дата начала: ')
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
-                self.current_list.add_task(Task(n, s, e, pr, c, du, st, h))
+                self.current_list.add_task(
+                    Task(t_d=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd))
             elif p == 'с':
-                self.s_t_d.save_todo(self.main_list)
+                self.s_t_d.save(self.main_list)
             elif p == 'о':
-                self.main_list = self.s_t_d.load_todo()
+                self.main_list = self.s_t_d.load()
                 self.current_list = self.main_list
             elif p == 'п':
-                for task in self.current_list.get_tasks():
-                    print(task)
+                if self.current_list.not_empty():
+                    for i, task in enumerate(self.current_list.get_tasks()):
+                        print('--', i+1, '--', task)
+                else:
+                    print('Подзадачи отсутствуют')
             elif p == 'в':
-                self.s_t_d.save_todo(self.main_list)
+                self.s_t_d.save(self.main_list)
                 stop = True
             elif p.isdigit():
                 p = int(p) - 1
-                if (len(self.current_task.child_tasks) - 1) >= p:
-                    self.current.append(p)
+                if p >= 0:
+                    if self.current_list.in_range(p):
+                        self.current.append(p)
             elif p == '..':
                 if len(self.current) > 0:
                     self.current.pop()
@@ -295,8 +355,8 @@ class cmd:
 
 
 if __name__ == '__main__':
-    s = Store(FILENAME)
-    c = cmd(s)
+    s_t = Store(FILENAME)
+    s_n = Store(FILENORM)
+    n = Time_norm()
+    c = cmd(store_task=s_t, store_norm=s_n, norm=n)
     c.mainloop()
-
-
