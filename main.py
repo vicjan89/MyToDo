@@ -26,8 +26,16 @@ class Attachments:
         '''Создание объекта хранения вложений'''
         self.attachments = []
 
+#Константы для класса Task
+NOREPEAT = 0
+EVERYDAY = 1
+EVERYWEEK = 2
+EVERYMONTH =3
+EVERYYEAR = 4
+
+
 class Task:
-    def __init__(self, t_d='', start='', end='', repeat='', priority='', comment='', duration='', status='', hard='', lables=[], attachment=[]):
+    def __init__(self, t_d='', start='', end='', repeat_mode=NOREPEAT, priority='', comment='', duration='', status='', hard='', lables=[], attachment=[]):
         '''Создаёт задачу'''
         self.td = t_d
         if start != '':
