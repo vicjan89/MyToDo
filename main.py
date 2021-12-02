@@ -51,6 +51,8 @@ class Task:
         if start != '':
             if len(start) == 8:
                 self.start = datetime.strptime(start, '%d/%m/%y')
+            elif len(start) == 10:
+                self.start = datetime.strptime(start, '%d/%m/%Y')
             else:
                 self.start = datetime.strptime(start, '%d/%m/%y %H-%M')
         else:
@@ -58,6 +60,9 @@ class Task:
         if end != '':
             if len(end) == 8:
                 self.end = datetime.strptime(end, '%d/%m/%y')
+                self.end = self.end.replace(hour=23, minute=59, second=59)
+            elif len(end) == 10:
+                self.end = datetime.strptime(end, '%d/%m/%Y')
                 self.end = self.end.replace(hour=23, minute=59, second=59)
             else:
                 self.end = datetime.strptime(end, '%d/%m/%y %H-%M')
@@ -283,20 +288,27 @@ class cmd:
                     du = 0.0
                 else:
                     hd = NO_HARD
-                    st = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
+                    st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
+                    if st != '':
+                        st = int(st)
+                    else:
+                        st = 0
                     if input('Важное?(+)') == '+':
                         pr = HIGH
                     else:
                         pr = LOW
                     du = input('Трудоёмкость: ')
-                    dig = ''
-                    mag = ''
-                    for i in du:
-                        if i.isdigit() or '.':
-                            dig += i
-                        else:
-                            mag += i
-                    du = self.nm.get_norm(mag) * float(dig)
+                    if du == '':
+                        du = 0.0
+                    else:
+                        dig = ''
+                        mag = ''
+                        for i in du:
+                            if i.isdigit() or '.':
+                                dig += i
+                            else:
+                                mag += i
+                        du = self.nm.get_norm(mag) * float(dig)
                 s = input('Дата начала: ')
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
