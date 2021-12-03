@@ -362,6 +362,8 @@ class cmd:
             elif p == 'ст':
                 self.current_task.change_status(
                     int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')))
+            elif p == 'уд':
+                pass
             else:
                 print('Недопустимая команда!')
 
