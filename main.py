@@ -30,61 +30,85 @@ class Attachments:
         self.attachments = []
 
 
-# Константы для класса Task
-NOREPEAT = 0
-EVERYDAY = 1
-EVERYWEEKDAY = 2
-EVERYWEEK = 3
-EVERYMONTH = 4
-EVERYYEAR = 5
-HIGH = True
-LOW = False
-HARD = True
-NO_HARD = False
-
-
 class Task:
-    def __init__(self, t_d='', start='', end='', repeat_mode=NOREPEAT, priority=LOW, comment='', duration=0.0, status=0,
+    "Класс описания задачи"
+
+    # Константы для класса Task
+    NOREPEAT = 0
+    EVERYDAY = 1
+    EVERYWEEKDAY = 2
+    EVERYWEEK = 3
+    EVERYMONTH = 4
+    EVERYYEAR = 5
+    HIGH = True
+    LOW = False
+    HARD = True
+    NO_HARD = False
+    MISTAKE = 'mistake'
+
+    def __init__(self, task='', start='', end='', repeat_mode=NOREPEAT, priority=LOW, comment='', duration=0.0, status=0,
                  hard=NO_HARD, lables=[], attachment=[]):
         """Создаёт задачу"""
-        self.td = t_d
-        if start != '':
-            if len(start) == 8:
-                self.start = datetime.strptime(start, '%d/%m/%y')
-            elif len(start) == 10:
-                self.start = datetime.strptime(start, '%d/%m/%Y')
-            else:
-                self.start = datetime.strptime(start, '%d/%m/%y %H-%M')
-        else:
-            self.start = start
-        if end != '':
-            if len(end) == 8:
-                self.end = datetime.strptime(end, '%d/%m/%y')
-                self.end = self.end.replace(hour=23, minute=59, second=59)
-            elif len(end) == 10:
-                self.end = datetime.strptime(end, '%d/%m/%Y')
-                self.end = self.end.replace(hour=23, minute=59, second=59)
-            else:
-                self.end = datetime.strptime(end, '%d/%m/%y %H-%M')
-        else:
-            self.end = end
-        if 0 <= repeat_mode <= 5:
-            self.repeat_mode = repeat_mode
+        self.task = task
+        self.start = start
+        self.end = end
+        self.repeat_mode = repeat_mode
         self.priority = priority
         self.comment = comment
         self.duration = duration
-        if 0 <= status <= 3:
-            self.status = status
-        else:
-            print('Неправильный статус.')
-        self.child_tasks = List_tasks()
-        if hard == '+':
-            self.hard = True
-        else:
-            self.hard = False
-        self.progress = 0.0
+        self.status = status
+        self.hard = hard
+        self.progress = 0
         self.lables = lables
         self.attachment = attachment
+        self.child_tasks = List_tasks()
+
+    @classmethod
+    def verify_task_comment(cls, task_comment):
+        if type(task_comment) != str:
+            raise TypeError('Должа быть строка')
+        return True
+
+    @classmethod
+    def verify_start_end_type(cls, start_end):
+        if type(start_end) != str:
+            raise TypeError('Должа быть строка')
+        return True
+
+    @classmethod
+    def verify_start_end_format(cls, start_end):
+        if start_end != '':
+            if len(start_end) == 8 and start_end[2] == '/' and start_end[5] == '/':
+                format_start_end = '%d/%m/%y'
+            elif len(start_end) == 10 and start_end[2] == '/' and start_end[5] == '/':
+                format_start_end = '%d/%m/%Y'
+            elif len(start_end) == 14 and start_end[2] == '/' and start_end[5] == '/' and start_end[8] == ' ' and start_end[11] == '-':
+                format_start_end = '%d/%m/%y %H-%M'
+            elif len(start_end) == 16 and start_end[2] == '/' and start_end[5] == '/' and start_end[10] == ' ' and start_end[13] == '-':
+                format_start_end = '%d/%m/%Y %H-%M'
+            else:
+                format_start_end = cls.MISTAKE
+        else:
+            format_start_end = ''
+        return format_start_end
+
+    @classmethod
+    def verify_status(cls, status):
+        if type(status) != int:
+            raise TypeError('Должно быть целое число')
+        if 0 <= status <= 3:
+            return True
+        else:
+            return False
+
+    @classmethod
+    def verify_duration(cls, duration):
+        if type(duration) != float:
+            raise TypeError('Должно быть вещественное число')
+        if duration < 0:
+            return False
+        else:
+            return True
 
     def add_sub_task(self, task):
         """Добавляет подзадачу к задаче"""
@@ -105,10 +129,10 @@ class Task:
 
     def __str__(self):
         """Возвращает через функции print и str данные задачи без вложений в виде строки"""
-        if self.priority:
-            prt = 'Важно'
-        else:
-            prt = ''
+#        if self.priority:
+#            prt = 'Важно'
+#        else:
+        prt = ''
         if self.status == 0:
             sts = 'Не начата'
         elif self.status == 1:
@@ -119,16 +143,138 @@ class Task:
             sts = 'Выполнена'
         else:
             sts = 'Неправильный статус'
-        st_ret = str(self.start) + '\t' + self.td + '\t' + prt + '\n\t' + str(
+        st_ret = str(self.start) + '\t' + self.task + '\t' + prt + '\n\t' + str(
             self.end) + '\t' + self.comment + '\t' + sts + '\n' + '-' * 80
         return st_ret
 
-    def change_status(self, status):
-        """Изменяет статус задачи"""
-        if 0 <= status <= 3:
-            self.status = status
+    @property
+    def task(self):
+        '''Возвращает наименование задачи'''
+        return self.__task
+
+    @task.setter
+    def task(self, task):
+        """Изменяет наименование задачи"""
+        if self.verify_task_comment(task):
+            self.__task = task
+
+    @property
+    def start(self):
+        '''Возвращает дату и время начала задачи'''
+        return self.__start
+
+    @start.setter
+    def start(self, start):
+        """Изменяет дату и время начала задачи"""
+        if self.verify_start_end_type(start):
+            fmt = self.verify_start_end_format(start)
+            if fmt == '' or fmt == self.MISTAKE:
+                self.__start = ''
+            else:
+                self.__start = datetime.strptime(start, fmt)
+
+    @property
+    def end(self):
+        '''Возвращает дату и время окончания задачи'''
+        return self.__end
+
+    @end.setter
+    def end(self, end):
+        """Изменяет дату и время окончания задачи"""
+        if self.verify_start_end_type(end):
+            fmt = self.verify_start_end_format(end)
+            if fmt == '' or fmt == self.MISTAKE:
+                self.__end = ''
+            else:
+                self.__end = datetime.strptime(end, fmt)
+                self.__end = self.__end.replace(hour=23, minute=59, second=59)
+
+    @property
+    def repeat_mode(self):
+        '''Возвращает режим повторения задачи'''
+        return self.__repeat_mode
+
+    @repeat_mode.setter
+    def repeat_mode(self, repeat_mode):
+        """Изменяет режим повторения задачи"""
+        if 0 <= repeat_mode <= 5:
+            self.__repeat_mode = repeat_mode
+
+    @property
+    def priority(self):
+        '''Возвращает важность задачи'''
+        return self.__priority
+
+    @priority.setter
+    def priority(self, priority):
+        """Изменяет важность задачи"""
+        if type(priority) == bool:
+            self.__priority = priority
         else:
-            print('Неверный статус')
+            raise TypeError('Важность должна быть логического типа')
+
+    @property
+    def comment(self):
+        '''Возвращает комментарий к задаче'''
+        return self.__comment
+
+    @comment.setter
+    def comment(self, comment):
+        """Изменяет комментарий к задаче"""
+        if self.verify_task_comment(comment):
+            self.__comment = comment
+
+    @property
+    def duration(self):
+        '''Возвращает трудозатраты задачи в часах'''
+        return self.duration
+
+    @duration.setter
+    def duration(self, duration):
+        """Изменяет трудозатраты задачи в часах"""
+        if self.verify_duration(duration):
+            self.__duration = duration
+
+    @property
+    def status(self):
+        '''Возвращает статус задачи'''
+        return self.__status
+
+    @status.setter
+    def status(self, status):
+        """Изменяет статус задачи"""
+        if self.verify_status(status):
+            self.__status = status
+
+    @property
+    def hard(self):
+        '''Возвращает жёсткость задачи'''
+        return self.__hard
+
+    @hard.setter
+    def hard(self, hard):
+        """Изменяет жёсткость задачи"""
+        if type(hard) == bool:
+            self.__hard = hard
+        else:
+            raise TypeError('Жёсткость должна быть логического типа')
+
+    @property
+    def progress(self):
+        '''Возвращает прогресс задачи'''
+        return self.__progress
+
+    @progress.setter
+    def progress(self, progress):
+        """Изменяет прогресс задачи"""
+        if type(progress) != int:
+            raise TypeError('Прогресс должен быть целым числом')
+        elif progress < 0:
+            self.__progress = 0
+        elif progress >100:
+            self.__progress = 100
+        else:
+            self.__progress = progress
 
         #    def get_tasks(self):
         '''Возвращает строку задачи и всех вложенных задач. Вложенные задачи имеют номер и отступ
@@ -276,27 +422,27 @@ class cmd:
             for s_pr in self.current:
                 self.current_task = self.current_list.get_task(s_pr)
                 self.current_list = self.current_task.child_tasks
-                prompt += '/' + self.current_task.td
+                prompt += '/' + self.current_task.task
             p = input(prompt + '>')
             if p == '+':
                 n = input('Введите задачу: ')
                 h = input('Жёсткая задача?(+): ')
                 if h == '+':
-                    hd = HARD
+                    hd = self.current_task.HARD
                     st = 0
-                    pr = LOW
+                    pr = self.current_task.LOW
                     du = 0.0
                 else:
-                    hd = NO_HARD
+                    hd = self.current_task.NO_HARD
                     st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
                     if st != '':
                         st = int(st)
                     else:
                         st = 0
                     if input('Важное?(+)') == '+':
-                        pr = HIGH
+                        pr = self.current_task.HIGH
                     else:
-                        pr = LOW
+                        pr = self.current_task.LOW
                     du = input('Трудоёмкость: ')
                     if du == '':
                         du = 0.0
@@ -313,7 +459,7 @@ class cmd:
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
                 self.current_list.add_task(
-                    Task(t_d=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd))
+                    Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd))
             elif p == 'с':
                 self.s_t_d.save(self.main_list)
             elif p == 'о':
@@ -336,6 +482,8 @@ class cmd:
             elif p == '..':
                 if len(self.current) > 0:
                     self.current.pop()
+            elif p == 'сп':
+                pass
             elif p == 'д':
                 dt = datetime.now()
                 for task in self.main_list.get_tasks_range(dt.date(), dt.date()):
@@ -360,8 +508,7 @@ class cmd:
                     if task != None:
                         print(task)
             elif p == 'ст':
-                self.current_task.change_status(
-                    int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')))
+                self.current_task.status = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
             elif p == 'уд':
                 pass
             else:
