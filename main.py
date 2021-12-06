@@ -1,11 +1,25 @@
 import datetime
 import pickle
 from datetime import *
+from PIL import Image
+from icalendar import Calendar, Event
 
 FILENAME = 'todo.dat'
 FILENORM = 'norm.dat'
 INDENT = '    '
 
+class Calendar_tasks:
+    def __init__(self):
+        self.cal = Calendar()
+        self.cal.add('prodid', '-//My calendar product//mxm.dk//')
+        self.cal.add('version', '2.0')
+
+    def add_event(self, task):
+        event = Event()
+        event.add('summary', task.task)
+        event.add('dtstart', task.start)
+        event.add('dtend', task.end)
+        self.cal.add_component(event)
 
 class Lables:
     def __init__(self):
@@ -28,6 +42,12 @@ class Attachments:
     def __init__(self):
         """Создание объекта хранения вложений"""
         self.attachments = []
+
+    def show_attach(self):
+        size = (300, 300)
+        img = Image.open(r"C:\Users\Виктор\Pictures\soul-knight-unreleased--ico.jpg")
+        img.thumbnail(size)
+        img.show()
 
 
 class Task:
@@ -510,7 +530,8 @@ class cmd:
             elif p == 'ст':
                 self.current_task.status = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
             elif p == 'уд':
-                pass
+                nu = int(input('Номер уддаляемой задачи: '))-1
+                self.current_list.del_task(nu)
             else:
                 print('Недопустимая команда!')
 
