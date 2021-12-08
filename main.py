@@ -430,7 +430,7 @@ class cmd:
         self.s_t_d = store_task
         self.s_n = store_norm
         self.nm = norm
-        self.main_list = List_tasks()
+        self.main_list = self.s_t_d.load()
         self.current_list = self.main_list
 
     def mainloop(self):
@@ -530,7 +530,7 @@ class cmd:
             elif p == 'ст':
                 self.current_task.status = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
             elif p == 'уд':
-                nu = int(input('Номер уддаляемой задачи: '))-1
+                nu = int(input('Номер удаляемой задачи: '))-1
                 self.current_list.del_task(nu)
             else:
                 print('Недопустимая команда!')
