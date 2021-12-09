@@ -1,13 +1,34 @@
-import datetime
 import pickle
 from datetime import *
 from PIL import Image
-from icalendar import Calendar, Event
+#from icalendar import Calendar, Event
+from calendar import *
 
 FILENAME = 'todo.dat'
 FILENORM = 'norm.dat'
 INDENT = '    '
 
+class Time_line:
+    def __init__(self):
+        today = date.today()
+        cal = Calendar()
+        yr = today.year
+        yr1 = yr
+        yr2 = yr
+        tm = today.month
+        tm1 = tm +1
+        if tm1 > 12:
+            tm1 = tm1 - 12
+            yr1 += 1
+        tm2 = tm + 2
+        if tm2 > 12:
+            tm2 = tm2 - 12
+            yr2 += 1
+        self.time_line = cal.monthdatescalendar(yr, tm) + cal.monthdatescalendar(yr1, tm1) + cal.monthdatescalendar(yr2, tm2)
+
+
+
+'''
 class Calendar_tasks:
     def __init__(self):
         self.cal = Calendar()
@@ -20,6 +41,7 @@ class Calendar_tasks:
         event.add('dtstart', task.start)
         event.add('dtend', task.end)
         self.cal.add_component(event)
+'''
 
 class Lables:
     def __init__(self):
@@ -540,5 +562,6 @@ if __name__ == '__main__':
     s_t = Store(FILENAME)
     s_n = Store(FILENORM)
     n = Time_norm()
+    tl = Time_line()
     c = cmd(store_task=s_t, store_norm=s_n, norm=n)
     c.mainloop()
