@@ -34,6 +34,10 @@ class Time_range:
     def start(self):
         return self.__start
 
+    @start.setter
+    def start(self, start):
+        self.__start = start
+
     @property
     def end(self):
         return self.__start + self.__delta
@@ -71,13 +75,9 @@ class Time_line:
         if tm2 > 12:
             tm2 = tm2 - 12
             yr2 += 1
-        free = True
         for d in cal.itermonthdates(yr, tm):
             if d >= today:
                 if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
-                    if free:
-                        self.__free_time = datetime(d.year, d.month, d.day, 8)
-                        free = False
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
         for d in cal.itermonthdates(yr1, tm1):
@@ -99,65 +99,66 @@ class Time_line:
         """Добавляет задачу в наиболее раннее свободное время. Если срок задачи ранее свободного времени то вставляет
         задачу в середину со сдвигом остальных. Жёсткие задачи добавляет точно в срок."""
         tr = Time_range(task.start, task.delta, task.task, task.comment)
-        for i, t in enumerate(self.__time_line):
-            cr, rem = cross()
-            self.__time_line[i] = tr
-                    #if self.__free_time == t.start:
-                    #    self.__free_time +=
-                elif t.start <= tr.delta < t.end:
+        lng = len(self.__time_line)
+        i = 0
+        while i < lng:
+            if self.__time_line[i].summary == '':
+                if task.hard:
+                    cr, tr = self.cross(self.__time_line[i], tr)
+                    if len(cr) != 0:
+                        self.__time_line.pop(i)
+                        for tri in cr:
+                            self.__time_line.insert(i, tri)
+                            i += 1
+                    if tr == None:
+                        return True
+            i += 1
+        return False
 
-        for i, t in enumerate(self.__time_line):
 
 
     @classmethod
-    def cross(cls, time_free, time_task, hard=False):
-        if time_free.summary != '':
+    def cross(cls, time_free, time_task):
         ls = []
-        if time_free.start >= time_task.end:
-            if hard:
-                ls.append(time_free)
-                remainder = None
-            else:
-                time_task.start = time_free.start
-        if time_free.start > time_task.start:
-            if time_free.end == time_task.end:
-                ls.append(Time_range(time_free.start, time_free.delta, time_task.summary, time_task.description))
-                if hard:
+        if time_free.summary == '':
+            if time_free.start >= time_task.end:
+                    ls.append(time_free)
                     remainder = None
-                else:
-                    remainder = Time_range(time_task.start, time_task.delta - time_free.delta, time_task.summary, time_task.description)
-            elif time_free.start < time_task.end <time_free.end:
-                if hard:
+            if time_free.start > time_task.start:
+                if time_free.end == time_task.end:
+                    ls.append(Time_range(time_free.start, time_free.delta, time_task.summary, time_task.description))
+                    remainder = None
+                elif time_free.start < time_task.end <time_free.end:
                     ls.append(Time_range(time_free.start, time_task.end - time_free.start, time_task.summary, time_task.description))
                     ls.append(Time_range(time_task.end, time_task.delta))
                     remainder = None
+            if time_free.start == time_task.start:
+                if time_task.end == time_free.end:
+                    ls.append(time_task)
+                    remainder = None
+                elif time_task.end > time_free.end:
+                    remainder = time_task
+                    remainder.start = time_free.end
+                    remainder.delta = time_task.end - remainder.start
+                    ls.append(Time_range(time_task.start, time_free.delta, time_task.summary, time_task.description))
                 else:
-                    time_task.start = time_free.start
-        if time_free.start == time_task.start:
-            if time_task.end == time_free.end:
-                ls.append(time_task)
-                remainder = None
-            elif time_task.end > time_free.end:
-                remainder = time_task
-                remainder.start = time_free.end
-                remainder.delta = time_task.end - remainder.start
-                ls.append(Time_range(time_task.start, time_free.delta, time_task.summary, time_task.description))
-            else:
-                remainder = None
-                ls.append(time_task)
-                ls.append(Time_range(time_task.end, time_free.end - time_task.end))
-        if time_free.start < time_task.start:
-            if time_task.end == time_free.end:
-                ls.append(Time_range(time_free.start, time_free.delta - time_task.delta))
-                ls.append(time_task)
-                remainder = None
-        if (time_task.end > time_free.end) and (time_free.start < time_task.start < time_free.end):
-                ls.append(Time_range(time_free.start, time_task.start - time_free.start))
-                ls.append(Time_range(time_task.start, time_free.end -time_task.start, time_task.summary, time_task.description))
-                remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary, time_task.description)
-        if time_free.end <= time_task.start:
-                remainder = time_task
-                ls.append(time_free)
+                    remainder = None
+                    ls.append(time_task)
+                    ls.append(Time_range(time_task.end, time_free.end - time_task.end))
+            if time_free.start < time_task.start:
+                if time_task.end == time_free.end:
+                    ls.append(Time_range(time_free.start, time_free.delta - time_task.delta))
+                    ls.append(time_task)
+                    remainder = None
+            if (time_task.end > time_free.end) and (time_free.start < time_task.start < time_free.end):
+                    ls.append(Time_range(time_free.start, time_task.start - time_free.start))
+                    ls.append(Time_range(time_task.start, time_free.end -time_task.start, time_task.summary, time_task.description))
+                    remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary, time_task.description)
+            if time_free.end <= time_task.start:
+                    remainder = time_task
+                    ls.append(time_free)
+        else:
+            remainder = time_task
         return ls, remainder
 
 
@@ -362,14 +363,14 @@ class Task:
                 self.__end = ''
             else:
                 self.__end = datetime.strptime(end, fmt)
-                self.__end = self.__end.replace(hour=23, minute=59, second=59)
+                #self.__end = self.__end.replace(hour=23, minute=59, second=59)
 
     @property
     def delta(self):
         if self.hard:
             return self.end - self.start
         else:
-            return timedelta(hour=self.duration)
+            return timedelta(hours=self.duration)
 
     @property
     def repeat_mode(self):
@@ -409,7 +410,7 @@ class Task:
     @property
     def duration(self):
         '''Возвращает трудозатраты задачи в часах'''
-        return self.duration
+        return self.__duration
 
     @duration.setter
     def duration(self, duration):
@@ -697,6 +698,11 @@ class cmd:
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
+                lt = self.current_list.get_tasks()
+                for ts in lt:
+                    print(ts)
+                    tl.add_task(ts)
+                print('Завершено')
                 print(tl)
             else:
                 print('Недопустимая команда!')
