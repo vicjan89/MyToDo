@@ -8,8 +8,55 @@ FILENAME = 'todo.dat'
 FILENORM = 'norm.dat'
 INDENT = '    '
 
+class Time_range:
+    def __init__(self, start, delta, summary='', description = ''):
+        self.__summary = summary
+        self.__start = start
+        self.__delta = delta
+        self.__description = description
+
+    @property
+    def summary(self):
+        return self.__summary
+
+    @summary.setter
+    def summary(self, summary):
+        if type(summary) == str:
+            self.__summary = summary
+        else:
+            raise TypeError('summary должно быть строкой')
+
+    @property
+    def delta(self):
+        return self.__delta
+
+    @property
+    def start(self):
+        return self.__start
+
+    @property
+    def end(self):
+        return self.__start + self.__delta
+
+    @property
+    def description(self):
+        return self.__description
+
+    @description.setter
+    def description(self, description):
+        if type(description) == str:
+            self.__description = description
+        else:
+            raise TypeError('description должно быть строкой')
+
+    def __str__(self):
+        return self .__summary + str(self.__start) + ' ' + str(self.__start + self.__delta)
+
 class Time_line:
     def __init__(self):
+        self.__time_line = []
+
+    def generate_work_time(self):
         today = date.today()
         cal = Calendar()
         yr = today.year
@@ -24,8 +71,94 @@ class Time_line:
         if tm2 > 12:
             tm2 = tm2 - 12
             yr2 += 1
-        self.time_line = cal.monthdatescalendar(yr, tm) + cal.monthdatescalendar(yr1, tm1) + cal.monthdatescalendar(yr2, tm2)
+        free = True
+        for d in cal.itermonthdates(yr, tm):
+            if d >= today:
+                if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+                    if free:
+                        self.__free_time = datetime(d.year, d.month, d.day, 8)
+                        free = False
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+        for d in cal.itermonthdates(yr1, tm1):
+            if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
+                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+        for d in cal.itermonthdates(yr2, tm2):
+            if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
+                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
 
+    def __str__(self):
+        r_s = ''
+        for i in self.__time_line:
+            r_s += str(i)+'\n'
+        return r_s
+
+    def add_task(self, task):
+        """Добавляет задачу в наиболее раннее свободное время. Если срок задачи ранее свободного времени то вставляет
+        задачу в середину со сдвигом остальных. Жёсткие задачи добавляет точно в срок."""
+        tr = Time_range(task.start, task.delta, task.task, task.comment)
+        for i, t in enumerate(self.__time_line):
+            cr, rem = cross()
+            self.__time_line[i] = tr
+                    #if self.__free_time == t.start:
+                    #    self.__free_time +=
+                elif t.start <= tr.delta < t.end:
+
+        for i, t in enumerate(self.__time_line):
+
+
+    @classmethod
+    def cross(cls, time_free, time_task, hard=False):
+        if time_free.summary != '':
+        ls = []
+        if time_free.start >= time_task.end:
+            if hard:
+                ls.append(time_free)
+                remainder = None
+            else:
+                time_task.start = time_free.start
+        if time_free.start > time_task.start:
+            if time_free.end == time_task.end:
+                ls.append(Time_range(time_free.start, time_free.delta, time_task.summary, time_task.description))
+                if hard:
+                    remainder = None
+                else:
+                    remainder = Time_range(time_task.start, time_task.delta - time_free.delta, time_task.summary, time_task.description)
+            elif time_free.start < time_task.end <time_free.end:
+                if hard:
+                    ls.append(Time_range(time_free.start, time_task.end - time_free.start, time_task.summary, time_task.description))
+                    ls.append(Time_range(time_task.end, time_task.delta))
+                    remainder = None
+                else:
+                    time_task.start = time_free.start
+        if time_free.start == time_task.start:
+            if time_task.end == time_free.end:
+                ls.append(time_task)
+                remainder = None
+            elif time_task.end > time_free.end:
+                remainder = time_task
+                remainder.start = time_free.end
+                remainder.delta = time_task.end - remainder.start
+                ls.append(Time_range(time_task.start, time_free.delta, time_task.summary, time_task.description))
+            else:
+                remainder = None
+                ls.append(time_task)
+                ls.append(Time_range(time_task.end, time_free.end - time_task.end))
+        if time_free.start < time_task.start:
+            if time_task.end == time_free.end:
+                ls.append(Time_range(time_free.start, time_free.delta - time_task.delta))
+                ls.append(time_task)
+                remainder = None
+        if (time_task.end > time_free.end) and (time_free.start < time_task.start < time_free.end):
+                ls.append(Time_range(time_free.start, time_task.start - time_free.start))
+                ls.append(Time_range(time_task.start, time_free.end -time_task.start, time_task.summary, time_task.description))
+                remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary, time_task.description)
+        if time_free.end <= time_task.start:
+                remainder = time_task
+                ls.append(time_free)
+        return ls, remainder
 
 
 '''
@@ -230,6 +363,13 @@ class Task:
             else:
                 self.__end = datetime.strptime(end, fmt)
                 self.__end = self.__end.replace(hour=23, minute=59, second=59)
+
+    @property
+    def delta(self):
+        if self.hard:
+            return self.end - self.start
+        else:
+            return timedelta(hour=self.duration)
 
     @property
     def repeat_mode(self):
@@ -554,6 +694,10 @@ class cmd:
             elif p == 'уд':
                 nu = int(input('Номер удаляемой задачи: '))-1
                 self.current_list.del_task(nu)
+            elif p == 'пл':
+                tl = Time_line()
+                tl.generate_work_time()
+                print(tl)
             else:
                 print('Недопустимая команда!')
 
