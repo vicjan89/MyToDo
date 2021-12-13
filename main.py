@@ -54,7 +54,7 @@ class Time_range:
             raise TypeError('description должно быть строкой')
 
     def __str__(self):
-        return self .__summary + str(self.__start) + ' ' + str(self.__start + self.__delta)
+        return str(self.__start) + ' ' + str(self.__start + self.__delta) + ' ' + self .__summary + ' ' + self.__description
 
 class Time_line:
     def __init__(self):
@@ -110,9 +110,10 @@ class Time_line:
                         for tri in cr:
                             self.__time_line.insert(i, tri)
                             i += 1
+                    else:
+                        i += 1
                     if tr == None:
                         return True
-            i += 1
         return False
 
 
@@ -702,7 +703,6 @@ class cmd:
                 for ts in lt:
                     print(ts)
                     tl.add_task(ts)
-                print('Завершено')
                 print(tl)
             else:
                 print('Недопустимая команда!')
