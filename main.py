@@ -330,8 +330,8 @@ class Task:
             sts = 'Выполнена'
         else:
             sts = 'Неправильный статус'
-        st_ret = str(self.start) + '\t' + self.task + '\t' + pr + '\n' + str(self.duration) + 'ч.' + '\t' + str(
-            self.end) + '\t' + self.comment + '\t' + sts + '\t' + hr + '\n' + '-' * 80
+        st_ret = str(self.start) + '\t' + str(self.duration) + ' (' + str(self.progress) + '%)' + '\t' + self.task + '\t' + pr + '\n' + str(
+            self.duration) + 'ч.' + '\t' + str(self.end) + '\t' + str(self.delta) + '\t'+ self.comment + '\t' + sts + '\t' + hr + '\n' + '-' * 100
         return st_ret
 
     @property
@@ -378,10 +378,11 @@ class Task:
 
     @property
     def delta(self):
+        """Возвращает оставшуюся несделанную длительность задачи."""
         if self.hard:
             return self.end - self.start
         else:
-            return timedelta(hours=self.duration)
+            return timedelta(hours=self.duration * (100 - self.progress) / 100)
 
     @property
     def repeat_mode(self):
@@ -720,6 +721,9 @@ class cmd:
             elif p == 'уд':
                 nu = int(input('Номер удаляемой задачи: '))-1
                 self.current_list.del_task(nu)
+            elif p == 'пр':
+                pr = int(input('Прогресс: '))
+                self.current_task.progress = pr
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
