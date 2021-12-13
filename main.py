@@ -30,6 +30,10 @@ class Time_range:
     def delta(self):
         return self.__delta
 
+    @delta.setter
+    def delta(self, delta):
+        self.__delta = delta
+
     @property
     def start(self):
         return self.__start
@@ -103,27 +107,32 @@ class Time_line:
         i = 0
         while i < lng:
             if self.__time_line[i].summary == '':
-                if task.hard:
-                    cr, tr = self.cross(self.__time_line[i], tr)
-                    if len(cr) != 0:
-                        self.__time_line.pop(i)
-                        for tri in cr:
-                            self.__time_line.insert(i, tri)
-                            i += 1
-                    else:
+                if not task.hard:
+                    tr.start = self.__time_line[i].start
+                cr, tr = self.cross(self.__time_line[i], tr)
+                if len(cr) != 0:
+                    self.__time_line.pop(i)
+                    for tri in cr:
+                        self.__time_line.insert(i, tri)
                         i += 1
-                    if tr == None:
-                        return True
+                else:
+                    i += 1
+                if tr == None:
+                    return True
+            else:
+                i += 1
         return False
 
 
 
     @classmethod
     def cross(cls, time_free, time_task):
+        """Возвращает список объектов Time_range заполняющих time_free и остаток от неразмещённой задачи time_task.
+        Если time_free и time_task не пересекаются то возвращает пустой список. Если time_task размещена полностью или
+        находится ранее time_free то возвращает None."""
         ls = []
         if time_free.summary == '':
             if time_free.start >= time_task.end:
-                    ls.append(time_free)
                     remainder = None
             if time_free.start > time_task.start:
                 if time_free.end == time_task.end:
@@ -131,16 +140,14 @@ class Time_line:
                     remainder = None
                 elif time_free.start < time_task.end <time_free.end:
                     ls.append(Time_range(time_free.start, time_task.end - time_free.start, time_task.summary, time_task.description))
-                    ls.append(Time_range(time_task.end, time_task.delta))
+                    ls.append(Time_range(time_task.end, time_free.end - time_task.end))
                     remainder = None
             if time_free.start == time_task.start:
                 if time_task.end == time_free.end:
                     ls.append(time_task)
                     remainder = None
                 elif time_task.end > time_free.end:
-                    remainder = time_task
-                    remainder.start = time_free.end
-                    remainder.delta = time_task.end - remainder.start
+                    remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary, time_task.description)
                     ls.append(Time_range(time_task.start, time_free.delta, time_task.summary, time_task.description))
                 else:
                     remainder = None
@@ -157,7 +164,6 @@ class Time_line:
                     remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary, time_task.description)
             if time_free.end <= time_task.start:
                     remainder = time_task
-                    ls.append(time_free)
         else:
             remainder = time_task
         return ls, remainder
@@ -306,10 +312,14 @@ class Task:
 
     def __str__(self):
         """Возвращает через функции print и str данные задачи без вложений в виде строки"""
-#        if self.priority:
-#            prt = 'Важно'
-#        else:
-        prt = ''
+        if self.priority:
+            pr = 'Важно!'
+        else:
+            pr = ''
+        if self.hard:
+            hr = 'Жёсткая!'
+        else:
+            hr = ''
         if self.status == 0:
             sts = 'Не начата'
         elif self.status == 1:
@@ -320,8 +330,8 @@ class Task:
             sts = 'Выполнена'
         else:
             sts = 'Неправильный статус'
-        st_ret = str(self.start) + '\t' + self.task + '\t' + prt + '\n\t' + str(
-            self.end) + '\t' + self.comment + '\t' + sts + '\n' + '-' * 80
+        st_ret = str(self.start) + '\t' + self.task + '\t' + pr + '\n' + str(self.duration) + 'ч.' + '\t' + str(
+            self.end) + '\t' + self.comment + '\t' + sts + '\t' + hr + '\n' + '-' * 80
         return st_ret
 
     @property
@@ -418,6 +428,16 @@ class Task:
         """Изменяет трудозатраты задачи в часах"""
         if self.verify_duration(duration):
             self.__duration = duration
+
+    @property
+    def duration_hours(self):
+        """Возвращает число целых часов трудозатрат"""
+        return int((self.__duration - int(self.__duration)) * 60)
+
+    @property
+    def duration_minutes(self):
+        """Возвращает число целых часов трудозатрат"""
+        return int(self.__duration)
 
     @property
     def status(self):
@@ -551,6 +571,10 @@ class List_tasks:
                 if lt.not_empty():
                     list_tasks += lt.get_tasks_range(start, end, status)
             return list_tasks
+
+    def sort_by_end(self):
+        """Сортирует задачи по возрастанию срока окончания."""
+        self.tasklist.sort(key=lambda tl: tl.end)
 
 
 class Time_norm:
@@ -699,10 +723,14 @@ class cmd:
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
+                self.current_list.sort_by_end()
                 lt = self.current_list.get_tasks()
                 for ts in lt:
-                    print(ts)
-                    tl.add_task(ts)
+                    if ts.hard:
+                        tl.add_task(ts)
+                for ts in lt:
+                    if not ts.hard:
+                        tl.add_task(ts)
                 print(tl)
             else:
                 print('Недопустимая команда!')
