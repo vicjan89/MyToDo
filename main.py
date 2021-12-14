@@ -15,6 +15,16 @@ class Time_range:
         self.__delta = delta
         self.__description = description
 
+    def __eq__(self, other):
+        if other != None:
+            if self.__summary == other.__summary and self.__start == other.__start and (
+                self.__delta == other.__delta) and self.__description == other.__description:
+                return True
+            else:
+                return False
+        else:
+            return False
+
     @property
     def summary(self):
         return self.__summary
@@ -81,17 +91,20 @@ class Time_line:
             yr2 += 1
         for d in cal.itermonthdates(yr, tm):
             if d >= today:
-                if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+                if 0 <= d.weekday() <= 4:
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
         for d in cal.itermonthdates(yr1, tm1):
-            if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+            if 0 <= d.weekday() <= 4:
                 self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
                 self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
         for d in cal.itermonthdates(yr2, tm2):
-            if self.__time_line.count(d) == 0 and (0 <= d.weekday() <= 4):
+            if 0 <= d.weekday() <= 4:
                 self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
                 self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+        for d in self.__time_line:
+            if self.__time_line.count(d) > 1:
+                self.__time_line.remove(d)
 
     def __str__(self):
         r_s = ''
@@ -123,10 +136,15 @@ class Time_line:
                         tr_rp.start = tr_rp.start + timedelta(days=1.0)
                         tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description)
                         i = 0
+                    elif task.repeat_mode == 2:
+                        tr_rp.start = tr_rp.start + timedelta(weeks=1.0)
+                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description)
+                        i = 0
                     else:
                         return True
             else:
                 i += 1
+            lng = len(self.__time_line)
         return False
 
 
@@ -225,10 +243,9 @@ class Task:
     # Константы для класса Task
     NOREPEAT = 0
     EVERYDAY = 1
-    EVERYWEEKDAY = 2
-    EVERYWEEK = 3
-    EVERYMONTH = 4
-    EVERYYEAR = 5
+    EVERYWEEK = 2
+    EVERYMONTH = 3
+    EVERYYEAR = 4
     HIGH = True
     LOW = False
     HARD = True
@@ -398,7 +415,7 @@ class Task:
     @repeat_mode.setter
     def repeat_mode(self, repeat_mode):
         """Изменяет режим повторения задачи"""
-        if 0 <= repeat_mode <= 5:
+        if 0 <= repeat_mode <= 4:
             self.__repeat_mode = repeat_mode
 
     @property
@@ -641,7 +658,7 @@ class cmd:
             p = input(prompt + '>')
             if p == '+':
                 n = input('Введите задачу: ')
-                rp = input('Повторение (1 - ежедневно): ')
+                rp = input('Повторение (1 - ежедневно, 2 - еженедельно, 3 - ежемесячно, 4 - ежегодно): ')
                 if rp != '':
                     rp = int(rp)
                     h = '+'
