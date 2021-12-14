@@ -103,6 +103,7 @@ class Time_line:
         """Добавляет задачу в наиболее раннее свободное время. Если срок задачи ранее свободного времени то вставляет
         задачу в середину со сдвигом остальных. Жёсткие задачи добавляет точно в срок."""
         tr = Time_range(task.start, task.delta, task.task, task.comment)
+        tr_rp = Time_range(task.start, task.delta, task.task, task.comment)
         lng = len(self.__time_line)
         i = 0
         while i < lng:
@@ -118,7 +119,12 @@ class Time_line:
                 else:
                     i += 1
                 if tr == None:
-                    return True
+                    if task.repeat_mode == 1:
+                        tr_rp.start = tr_rp.start + timedelta(days=1.0)
+                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description)
+                        i = 0
+                    else:
+                        return True
             else:
                 i += 1
         return False
@@ -635,7 +641,13 @@ class cmd:
             p = input(prompt + '>')
             if p == '+':
                 n = input('Введите задачу: ')
-                h = input('Жёсткая задача?(+): ')
+                rp = input('Повторение (1 - ежедневно): ')
+                if rp != '':
+                    rp = int(rp)
+                    h = '+'
+                else:
+                    rp = 0
+                    h = input('Жёсткая задача?(+): ')
                 if h == '+':
                     hd = self.current_task.HARD
                     st = 0
@@ -668,7 +680,7 @@ class cmd:
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
                 self.current_list.add_task(
-                    Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd))
+                    Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd, repeat_mode=rp))
             elif p == 'с':
                 self.s_t_d.save(self.main_list)
             elif p == 'о':
@@ -724,6 +736,12 @@ class cmd:
             elif p == 'пр':
                 pr = int(input('Прогресс: '))
                 self.current_task.progress = pr
+            elif p == 'нач':
+                st = input('Начало: ')
+                self.current_task.start = st
+            elif p == 'кон':
+                en = input('Конец: ')
+                self.current_task.end = en
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
