@@ -706,7 +706,8 @@ class cmd:
             elif p == 'п':
                 if self.current_list.not_empty():
                     for i, task in enumerate(self.current_list.get_tasks()):
-                        print('--', i+1, '--', task)
+                        if task.progress < 100:
+                            print('--', i+1, '--', task)
                 else:
                     print('Подзадачи отсутствуют')
             elif p == 'в':
@@ -769,7 +770,8 @@ class cmd:
                         tl.add_task(ts)
                 for ts in lt:
                     if not ts.hard:
-                        tl.add_task(ts)
+                        if ts.progress < 100:
+                            tl.add_task(ts)
                 print(tl)
             else:
                 print('Недопустимая команда!')
