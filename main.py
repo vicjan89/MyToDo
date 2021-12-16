@@ -326,19 +326,6 @@ class Task:
         """Добавляет подзадачу к задаче"""
         self.child_tasks.add_task(task)
 
-        #    def get_tasks_range(self, date_start, date_end):
-        '''Возвращает список задач, попавших в заданный диапазон дат
-        if len(self.child_tasks) > 0:
-            list_tasks = []
-            for task in self.child_tasks:
-                if task.status != 3:
-                    if task.start.date() <= date_end and task.end.date() >= date_start:
-                        list_tasks.append(task)
-                    for sub_task in task.child_tasks:
-                        list_tasks.append(sub_task.get_tasks_range(date_start, date_end))
-            return list_tasks
-'''
-
     def __str__(self):
         """Возвращает через функции print и str данные задачи без вложений в виде строки"""
         if self.priority:
@@ -576,6 +563,36 @@ class List_tasks:
         if self.not_empty():
             return self.tasklist
 
+    def get_hard(self):
+        """Возвращает все жёсткие задачи в порядке времени окончания"""
+        lst = []
+        if self.not_empty():
+            for item in self.tasklist:
+                if item.hard or item.repeat_mode != item.NOREPEAT:
+                    lst.append(item)
+            lst.sort(key=lambda ts: ts.end)
+        return lst
+
+    def get_important(self):
+        """Возвращает все важные задачи в порядке времени окончания"""
+        lst = []
+        if self.not_empty():
+            for item in self.tasklist:
+                if not item.hard and item.repeat_mode == item.NOREPEAT and item.priority:
+                    lst.append(item)
+            lst.sort(key=lambda ts: ts.end)
+        return lst
+
+    def get_not_important(self):
+        """Возвращает все неважные задачи в порядке времени окончания"""
+        lst = []
+        if self.not_empty():
+            for item in self.tasklist:
+                if not item.hard and item.repeat_mode == item.NOREPEAT and not item.priority:
+                    lst.append(item)
+            lst.sort(key=lambda ts: ts.end)
+        return lst
+
     def not_empty(self):
         """Возвращает True если список непустой"""
         if len(self.tasklist) > 0:
@@ -769,15 +786,14 @@ class cmd:
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
-                self.current_list.sort_by_end()
-                lt = self.current_list.get_tasks()
-                for ts in lt:
-                    if ts.hard:
+                for ts in self.current_list.get_hard():
+                    tl.add_task(ts)
+                for ts in self.current_list.get_important():
+                    if ts.progress < 100:
                         tl.add_task(ts)
-                for ts in lt:
-                    if not ts.hard:
-                        if ts.progress < 100:
-                            tl.add_task(ts)
+                for ts in self.current_list.get_not_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
                 print(tl)
             else:
                 print('Недопустимая команда!')
