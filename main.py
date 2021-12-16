@@ -147,7 +147,8 @@ class Time_line:
             lng = len(self.__time_line)
         return False
 
-
+    def add_tasks(self, tasks):
+        pass
 
     @classmethod
     def cross(cls, time_free, time_task):
@@ -181,6 +182,11 @@ class Time_line:
                 if time_task.end == time_free.end:
                     ls.append(Time_range(time_free.start, time_free.delta - time_task.delta))
                     ls.append(time_task)
+                    remainder = None
+                elif time_task.end < time_free.end:
+                    ls.append(Time_range(time_free.start, time_task.start - time_free.start))
+                    ls.append(time_task)
+                    ls.append(Time_range(time_task.end, time_free.end - time_task.end))
                     remainder = None
             if (time_task.end > time_free.end) and (time_free.start < time_task.start < time_free.end):
                     ls.append(Time_range(time_free.start, time_task.start - time_free.start))
