@@ -1,3 +1,4 @@
+import datetime
 import pickle
 from datetime import *
 from PIL import Image
@@ -110,6 +111,20 @@ class Time_line:
         r_s = ''
         for i in self.__time_line:
             r_s += str(i)+'\n'
+        return r_s
+
+    def get_str(self, day, delta):
+        r_s = ''
+        for i in self.__time_line:
+            if i.start.date() >= day and i.end.date() <= (day + delta):
+                r_s += str(i) + '\n'
+        return r_s
+
+    def day(self, day):
+        r_s = ''
+        for i in self.__time_line:
+            if i.start.date() == day:
+                r_s += str(i) + '\n'
         return r_s
 
     def add_task(self, task):
@@ -747,22 +762,41 @@ class cmd:
             elif p == 'сп':
                 pass
             elif p == 'д':
-                dt = datetime.now()
-                for task in self.main_list.get_tasks_range(dt.date(), dt.date()):
-                    if task != None:
-                        print(task)
+                tl = Time_line()
+                tl.generate_work_time()
+                for ts in self.current_list.get_hard():
+                    tl.add_task(ts)
+                for ts in self.current_list.get_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                for ts in self.current_list.get_not_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                print(tl.day(date.today()))
             elif p == 'з':
-                dt = datetime.now()
-                dt = dt.date() + timedelta(1)
-                for task in self.main_list.get_tasks_range(dt, dt):
-                    if task != None:
-                        print(task)
+                tl = Time_line()
+                tl.generate_work_time()
+                for ts in self.current_list.get_hard():
+                    tl.add_task(ts)
+                for ts in self.current_list.get_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                for ts in self.current_list.get_not_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                print(tl.day(date.today() + timedelta(days=1)))
             elif p == 'н':
-                dt = datetime.now()
-                dt = dt.date()
-                for task in self.main_list.get_tasks_range(dt, dt + timedelta(6)):
-                    if task != None:
-                        print(task)
+                tl = Time_line()
+                tl.generate_work_time()
+                for ts in self.current_list.get_hard():
+                    tl.add_task(ts)
+                for ts in self.current_list.get_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                for ts in self.current_list.get_not_important():
+                    if ts.progress < 100:
+                        tl.add_task(ts)
+                print(tl.get_str(date.today(), timedelta(days=7)))
             elif p == 'м':
                 dt = datetime.now()
                 dt = dt.date()
