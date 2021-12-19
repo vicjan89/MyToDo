@@ -127,9 +127,21 @@ class Time_line:
                 r_s += str(i) + '\n'
         return r_s
 
+    def get_time_after(self, delta):
+        """Возвращает дату и время окончания промежутка времни delta наложенного на рабочее время"""
+        for i in self.__time_line:
+            if i.summary == '':
+                if i.delta > delta:
+                    return i.start + delta
+                elif i.delta == delta:
+                    return i.end
+                else:
+                    delta -= i.delta
+
     def add_task(self, task):
-        """Добавляет задачу в наиболее раннее свободное время. Если срок задачи ранее свободного времени то вставляет
-        задачу в середину со сдвигом остальных. Жёсткие задачи добавляет точно в срок."""
+        """Добавляет задачу в наиболее раннее свободное время в пересечении множества оставшихся свободных отрезков
+         времени и отрезка времени задачи. Жёсткие задачи добавляет точно в срок. Повторяющиеся задачи рассматривает
+        как жёсткие. Если задача размещена то возвращает True иначе False"""
         tr = Time_range(task.start, task.delta, task.task, task.comment)
         tr_rp = Time_range(task.start, task.delta, task.task, task.comment)
         lng = len(self.__time_line)
@@ -137,7 +149,10 @@ class Time_line:
         while i < lng:
             if self.__time_line[i].summary == '':
                 if not task.hard:
-                    tr.start = self.__time_line[i].start
+                    if tr.start < self.__time_line[i].start:
+                        tr.start = self.__time_line[i].start
+                        if tr.end > task.end:
+                            return False
                 cr, tr = self.cross(self.__time_line[i], tr)
                 if len(cr) != 0:
                     self.__time_line.pop(i)
@@ -162,8 +177,30 @@ class Time_line:
             lng = len(self.__time_line)
         return False
 
-    def add_tasks(self, tasks):
-        pass
+    def add_tasks(self, tl, tasks):
+        not_posted = []
+        for ts in tasks.get_hard():
+            if not tl.add_task(ts) and ts.repeat_mode == 0:
+                not_posted.append(ts)
+        ts_ni = tasks.get_not_important()
+        ts_i = tasks.get_important()
+        l_ni = len(ts_ni)
+        l_i = len(ts_i)
+        ni = 0
+        i = 0
+        stop = True
+        while stop:
+            if i == l_i or ts_ni[ni].end < tl.get_time_after(ts_i[i].delta + ts_ni[ni].delta):
+                if not tl.add_task(ts_ni[ni]):
+                    not_posted.append(ts_ni[ni])
+                ni += 1
+            else:
+                if not tl.add_task(ts_i[i]):
+                    not_posted.append(ts_i[i])
+                i += 1
+            if i == l_i and ni == l_ni:
+                stop = False
+        return not_posted
 
     @classmethod
     def cross(cls, time_free, time_task):
@@ -405,7 +442,7 @@ class Task:
                 self.__end = ''
             else:
                 self.__end = datetime.strptime(end, fmt)
-                #self.__end = self.__end.replace(hour=23, minute=59, second=59)
+
 
     @property
     def delta(self):
@@ -583,7 +620,7 @@ class List_tasks:
         lst = []
         if self.not_empty():
             for item in self.tasklist:
-                if item.hard or item.repeat_mode != item.NOREPEAT:
+                if (item.progress < 100) and (item.hard or item.repeat_mode != item.NOREPEAT):
                     lst.append(item)
             lst.sort(key=lambda ts: ts.end)
         return lst
@@ -593,7 +630,7 @@ class List_tasks:
         lst = []
         if self.not_empty():
             for item in self.tasklist:
-                if not item.hard and item.repeat_mode == item.NOREPEAT and item.priority:
+                if (item.progress < 100) and not item.hard and item.repeat_mode == item.NOREPEAT and item.priority:
                     lst.append(item)
             lst.sort(key=lambda ts: ts.end)
         return lst
@@ -603,7 +640,7 @@ class List_tasks:
         lst = []
         if self.not_empty():
             for item in self.tasklist:
-                if not item.hard and item.repeat_mode == item.NOREPEAT and not item.priority:
+                if (item.progress < 100) and not item.hard and item.repeat_mode == item.NOREPEAT and not item.priority:
                     lst.append(item)
             lst.sort(key=lambda ts: ts.end)
         return lst
@@ -764,45 +801,35 @@ class cmd:
             elif p == 'д':
                 tl = Time_line()
                 tl.generate_work_time()
-                for ts in self.current_list.get_hard():
-                    tl.add_task(ts)
-                for ts in self.current_list.get_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
-                for ts in self.current_list.get_not_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
+                tl.add_tasks(tl, self.current_list)
                 print(tl.day(date.today()))
             elif p == 'з':
                 tl = Time_line()
                 tl.generate_work_time()
-                for ts in self.current_list.get_hard():
-                    tl.add_task(ts)
-                for ts in self.current_list.get_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
-                for ts in self.current_list.get_not_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
+                np = tl.add_tasks(tl, self.current_list)
                 print(tl.day(date.today() + timedelta(days=1)))
+                if len(np) > 0:
+                    print('Не размещены:')
+                for t in np:
+                    print(t)
             elif p == 'н':
                 tl = Time_line()
                 tl.generate_work_time()
-                for ts in self.current_list.get_hard():
-                    tl.add_task(ts)
-                for ts in self.current_list.get_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
-                for ts in self.current_list.get_not_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
+                np = tl.add_tasks(tl, self.current_list)
                 print(tl.get_str(date.today(), timedelta(days=7)))
+                if len(np) > 0:
+                    print('Не размещены:')
+                for t in np:
+                    print(t)
             elif p == 'м':
-                dt = datetime.now()
-                dt = dt.date()
-                for task in self.main_list.get_tasks_range(dt, dt + timedelta(30)):
-                    if task != None:
-                        print(task)
+                tl = Time_line()
+                tl.generate_work_time()
+                np = tl.add_tasks(tl, self.current_list)
+                print(tl.get_str(date.today(), timedelta(days=30)))
+                if len(np) > 0:
+                    print('Не размещены:')
+                for t in np:
+                    print(t)
             elif p == 'ст':
                 self.current_task.status = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
             elif p == 'уд':
@@ -820,15 +847,12 @@ class cmd:
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
-                for ts in self.current_list.get_hard():
-                    tl.add_task(ts)
-                for ts in self.current_list.get_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
-                for ts in self.current_list.get_not_important():
-                    if ts.progress < 100:
-                        tl.add_task(ts)
+                np = tl.add_tasks(tl, self.current_list)
                 print(tl)
+                if len(np) > 0:
+                    print('Не размещены:')
+                for t in np:
+                    print(t)
             else:
                 print('Недопустимая команда!')
 
