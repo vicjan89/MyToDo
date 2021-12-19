@@ -2,7 +2,8 @@ import datetime
 import pickle
 from datetime import *
 from PIL import Image
-#from icalendar import Calendar, Event
+from icalendar import Calendar as ical
+from icalendar import Event
 from calendar import *
 
 FILENAME = 'todo.dat'
@@ -112,6 +113,9 @@ class Time_line:
         for i in self.__time_line:
             r_s += str(i)+'\n'
         return r_s
+
+    def get(self):
+        return self.__time_line
 
     def get_str(self, day, delta):
         r_s = ''
@@ -251,20 +255,28 @@ class Time_line:
         return ls, remainder
 
 
-'''
+
 class Calendar_tasks:
     def __init__(self):
-        self.cal = Calendar()
+        self.cal = ical()
         self.cal.add('prodid', '-//My calendar product//mxm.dk//')
         self.cal.add('version', '2.0')
 
-    def add_event(self, task):
+    def add_event(self, time_range):
         event = Event()
-        event.add('summary', task.task)
-        event.add('dtstart', task.start)
-        event.add('dtend', task.end)
+        event.add('summary', time_range.summary)
+        event.add('dtstart', time_range.start)
+        event.add('dtend', time_range.end)
+        event.add('description', time_range.description)
         self.cal.add_component(event)
-'''
+
+    def add_events(self, time_line):
+        ltr = time_line.get()
+        for i in ltr:
+            if i.summary != '':
+                self.add_event(i)
+        return self.cal.to_ical()
+
 
 class Lables:
     def __init__(self):
@@ -693,7 +705,7 @@ class Time_norm:
             return 1.0
 
 
-class Store:
+class Binary_store:
     def __init__(self, filename):
         """Создаёт объект умеющий хранить объекты в бинарном файле с именем filename."""
         self.filename = filename
@@ -853,13 +865,18 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
+            elif p == 'кал':
+                cl = Calendar_tasks()
+                cal_str = cl.add_events(tl)
+                with open('my_calendar.ics', 'wb') as file:
+                    file.write(cal_str)
             else:
                 print('Недопустимая команда!')
 
 
 if __name__ == '__main__':
-    s_t = Store(FILENAME)
-    s_n = Store(FILENORM)
+    s_t = Binary_store(FILENAME)
+    s_n = Binary_store(FILENORM)
     n = Time_norm()
     tl = Time_line()
     c = cmd(store_task=s_t, store_norm=s_n, norm=n)
