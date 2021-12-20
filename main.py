@@ -254,8 +254,6 @@ class Time_line:
             remainder = time_task
         return ls, remainder
 
-
-
 class Calendar_tasks:
     def __init__(self):
         self.cal = ical()
@@ -276,7 +274,6 @@ class Calendar_tasks:
             if i.summary != '':
                 self.add_event(i)
         return self.cal.to_ical()
-
 
 class Lables:
     def __init__(self):
@@ -856,6 +853,13 @@ class cmd:
             elif p == 'кон':
                 en = input('Конец: ')
                 self.current_task.end = en
+            elif p == 'тр':
+                du = input('Трудоёмкость: ')
+                if du == '':
+                    du = 0.0
+                else:
+                    du = float(du)
+                self.current_task.duration = du
             elif p == 'пл':
                 tl = Time_line()
                 tl.generate_work_time()
