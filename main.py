@@ -748,14 +748,14 @@ class cmd:
         """Главный цикл обработки команд"""
         stop = False
         while not stop:
-            prompt = ''
+            prompt = ''                              #создание строки приглашения ко вводу
             self.current_list = self.main_list
             for s_pr in self.current:
                 self.current_task = self.current_list.get_task(s_pr)
                 self.current_list = self.current_task.child_tasks
                 prompt += '/' + self.current_task.task
             p = input(prompt + '>')
-            if p == '+':
+            if p == '+':                              #добавить задачу
                 n = input('Введите задачу: ')
                 rp = input('Повторение (1 - ежедневно, 2 - еженедельно, 3 - ежемесячно, 4 - ежегодно): ')
                 if rp != '':
@@ -797,37 +797,39 @@ class cmd:
                 c = input('Примечание: ')
                 self.current_list.add_task(
                     Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd, repeat_mode=rp))
-            elif p == 'с':
+            elif p == 'с':                    #сохранить в файл задачи
                 self.s_t_d.save(self.main_list)
-            elif p == 'о':
+            elif p == 'о':                    #прочитать из файла задачи
                 self.main_list = self.s_t_d.load()
                 self.current_list = self.main_list
-            elif p == 'п':
+            elif p == 'п':                    #печать задач
                 if self.current_list.not_empty():
                     for i, task in enumerate(self.current_list.get_tasks()):
                         if task.progress < 100:
                             print('--', i+1, '--', task)
                 else:
                     print('Подзадачи отсутствуют')
-            elif p == 'в':
+            elif p == 'в':                    #выход
                 self.s_t_d.save(self.main_list)
                 stop = True
-            elif p.isdigit():
+            elif p.isdigit():                 #выбор задачи по номеру
                 p = int(p) - 1
                 if p >= 0:
                     if self.current_list.in_range(p):
                         self.current.append(p)
-            elif p == '..':
+            elif p == '..':                   #возврат на уровень выше
                 if len(self.current) > 0:
                     self.current.pop()
-            elif p == 'сп':
-                pass
-            elif p == 'д':
+            elif p == 'д':                    #вывод задач на день
                 tl = Time_line()
                 tl.generate_work_time()
                 tl.add_tasks(tl, self.current_list)
                 print(tl.day(date.today()))
-            elif p == 'з':
+                if len(np) > 0:
+                    print('Не размещены:')
+                for t in np:
+                    print(t)
+            elif p == 'з':                    #вывод задач на завтра
                 tl = Time_line()
                 tl.generate_work_time()
                 np = tl.add_tasks(tl, self.current_list)
@@ -836,7 +838,7 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
-            elif p == 'н':
+            elif p == 'н':                    #вывод задач на неделю
                 tl = Time_line()
                 tl.generate_work_time()
                 np = tl.add_tasks(tl, self.current_list)
@@ -845,7 +847,7 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
-            elif p == 'м':
+            elif p == 'м':                    #вывод задач на месяц
                 tl = Time_line()
                 tl.generate_work_time()
                 np = tl.add_tasks(tl, self.current_list)
@@ -854,28 +856,53 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
-            elif p == 'ст':
+            elif p == 'ст':                   #изменение статуса текущей задачи
                 self.current_task.status = int(input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): '))
-            elif p == 'уд':
+            elif p == 'уд':                   #удаление задачи
                 nu = int(input('Номер удаляемой задачи: '))-1
                 self.current_list.del_task(nu)
-            elif p == 'пр':
+            elif p == 'ред':                  #редактирование текста задачи
+                self.current_task.task = input('Новый текст задачи: ')
+            elif p == 'ком':                  #редактирование комментария к задаче
+                print(self.current_task.comment)
+                self.current_task.comment = input('Новый комментарий: ')
+            elif p == 'ж':                    #изменение жёсткости задачи
+                h = input('Жёсткая задача?(+): ')
+                if h == '+':
+                    self.current_task.hard = self.current_task.HARD
+                else:
+                    self.current_task.hard = self.current_task.NO_HARD
+            elif p == 'важ':                  #изменение приоритета задачи
+                if self.current_task.priority:
+                    print('+')
+                pr = input('Важность (+): ')
+                if pr == '':
+                    self.current_task.priority = self.current_task.LOW
+                else:
+                    self.current_task.priority = self.current_task.HIGH
+            elif p == 'пр':                    #изменение прогресса выполнения задачи
                 pr = int(input('Прогресс: '))
                 self.current_task.progress = pr
-            elif p == 'нач':
+            elif p == 'нач':                   #изменение начала выполнения задачи
                 st = input('Начало: ')
                 self.current_task.start = st
-            elif p == 'кон':
+            elif p == 'кон':                   #изменение конца выполнения задачи
                 en = input('Конец: ')
                 self.current_task.end = en
-            elif p == 'тр':
+            elif p == 'тр':                    #изменение трудоёмкости
                 du = input('Трудоёмкость: ')
                 if du == '':
                     du = 0.0
                 else:
                     du = float(du)
                 self.current_task.duration = du
-            elif p == 'пл':
+            elif p == 'пов':                   #изменение режима повторения задачи
+                rp = input('Повторение (1 - ежедневно, 2 - еженедельно, 3 - ежемесячно, 4 - ежегодно): ')
+                if rp != '':
+                    self.current_task.repeat_mode = int(rp)
+                else:
+                    self.current_task.repeat_mode = 0
+            elif p == 'пл':                    #планирование задач по линии времени
                 tl = Time_line()
                 tl.generate_work_time()
                 np = tl.add_tasks(tl, self.current_list)
@@ -884,15 +911,15 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
-            elif p == 'си':
+            elif p == 'си':                    #сохранить текущий день в историю
                 h = tl.copy_day(date.today())
                 self.hist = self.store_hist.load()
                 self.hist.paste_time_range(h)
                 self.store_hist.save(self.hist)
-            elif p == 'пи':
+            elif p == 'пи':                    #печать истории
                 self.hist = self.store_hist.load()
                 print(self.hist)
-            elif p == 'кал':
+            elif p == 'кал':                   #вывод запланированных задач в файл календаря
                 cl = Calendar_tasks()
                 cal_str = cl.add_events(tl)
                 with open('my_calendar.ics', 'wb') as file:
