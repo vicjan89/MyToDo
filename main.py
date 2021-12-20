@@ -8,6 +8,7 @@ from calendar import *
 
 FILENAME = 'todo.dat'
 FILENORM = 'norm.dat'
+FILEHIST = 'hist.dat'
 INDENT = '    '
 
 class Time_range:
@@ -205,6 +206,18 @@ class Time_line:
             if i == l_i and ni == l_ni:
                 stop = False
         return not_posted
+
+    def paste_time_range(self, list_time_range):
+        for i in list_time_range:
+            if self.__time_line.count(i) == 0:
+                self.__time_line.append(i)
+
+    def copy_day(self, day):
+        r_l = []
+        for i in self.__time_line:
+            if i.start.date() == day:
+                r_l.append(i)
+        return r_l
 
     @classmethod
     def cross(cls, time_free, time_task):
@@ -719,7 +732,7 @@ class Binary_store:
 
 
 class cmd:
-    def __init__(self, store_task, store_norm, norm):
+    def __init__(self, store_task, store_norm, norm, store_hist, hist):
         """Создаёт объект командной строки"""
         self.current = []
         self.current_task = Task()
@@ -728,6 +741,8 @@ class cmd:
         self.nm = norm
         self.main_list = self.s_t_d.load()
         self.current_list = self.main_list
+        self.store_hist = store_hist
+        self.hist = hist
 
     def mainloop(self):
         """Главный цикл обработки команд"""
@@ -869,6 +884,14 @@ class cmd:
                     print('Не размещены:')
                 for t in np:
                     print(t)
+            elif p == 'си':
+                h = tl.copy_day(date.today())
+                self.hist = self.store_hist.load()
+                self.hist.paste_time_range(h)
+                self.store_hist.save(self.hist)
+            elif p == 'пи':
+                self.hist = self.store_hist.load()
+                print(self.hist)
             elif p == 'кал':
                 cl = Calendar_tasks()
                 cal_str = cl.add_events(tl)
@@ -881,7 +904,8 @@ class cmd:
 if __name__ == '__main__':
     s_t = Binary_store(FILENAME)
     s_n = Binary_store(FILENORM)
+    s_h = Binary_store(FILEHIST)
     n = Time_norm()
-    tl = Time_line()
-    c = cmd(store_task=s_t, store_norm=s_n, norm=n)
+    t_history = Time_line()
+    c = cmd(store_task=s_t, store_norm=s_n, norm=n, store_hist=s_h, hist=t_history)
     c.mainloop()
