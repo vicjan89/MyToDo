@@ -703,6 +703,12 @@ class Time_norm:
         """Создаёт объект хранения норм времни"""
         self.norm = {}
 
+    def __str__(self):
+        r_s = ''
+        for key, value in self.norm.items():
+            r_s += key + " => " + str(value)+'\n'
+        return r_s
+
     def add_norm(self, magnitude: str, norm: float):
         """Добавляет единицу измерения и её норму времни"""
         self.norm[magnitude] = norm
@@ -823,7 +829,7 @@ class cmd:
             elif p == 'д':                    #вывод задач на день
                 tl = Time_line()
                 tl.generate_work_time()
-                tl.add_tasks(tl, self.current_list)
+                np = tl.add_tasks(tl, self.current_list)
                 print(tl.day(date.today()))
                 if len(np) > 0:
                     print('Не размещены:')
@@ -919,6 +925,15 @@ class cmd:
             elif p == 'пи':                    #печать истории
                 self.hist = self.store_hist.load()
                 print(self.hist)
+            elif p == 'дн':
+                self.nm = self.s_n.load()
+                m = input('Норма: ')
+                n = float(input('Значение: '))
+                self.nm.add_norm(m, n)
+                self.s_n.save(self.nm)
+            elif p == 'пн':
+                self.nm = self.s_n.load()
+                print(self.nm)
             elif p == 'кал':                   #вывод запланированных задач в файл календаря
                 cl = Calendar_tasks()
                 cal_str = cl.add_events(tl)
