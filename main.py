@@ -817,6 +817,13 @@ class cmd:
                             print('--', i+1, '--', task)
                 else:
                     print('Подзадачи отсутствуют')
+            elif p == 'вып':                    #печать задач
+                if self.current_list.not_empty():
+                    for i, task in enumerate(self.current_list.get_tasks()):
+                        if task.progress == 100:
+                            print('--', i+1, '--', task)
+                else:
+                    print('Подзадачи отсутствуют')
             elif p == 'в':                    #выход
                 self.s_t_d.save(self.main_list)
                 stop = True
