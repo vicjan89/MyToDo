@@ -349,6 +349,19 @@ class Task:
         self.attachment = attachment
         self.child_tasks = List_tasks()
 
+    def get_tasks(self):
+        r_l = []
+        if len(self.child_tasks) > 0:
+            du = 0.0
+            for item in self.child_tasks:
+                r_l += item.get_tasks()
+                du += item.duration
+            if self.duration > du:
+                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment, self.duration - du, self.status, self.hard, self.lables, self.attachment))
+        else:
+            r_l.append(self)
+        return r_l
+
     @classmethod
     def verify_task_comment(cls, task_comment):
         if type(task_comment) != str:
@@ -466,7 +479,6 @@ class Task:
                 self.__end = datetime.strptime(end, fmt)
                 if self.__end <= self.__start:
                     raise Exception('Окончание задачи раньше начала!')
-
 
     @property
     def delta(self):
