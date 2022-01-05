@@ -152,11 +152,11 @@ class Time_line:
         lng = len(self.__time_line)
         i = 0
         while i < lng:
-            if self.__time_line[i].summary == '':
-                if not task.hard:
-                    if tr.start < self.__time_line[i].start:
+            if self.__time_line[i].summary == '':     #Если отрезок времени не занят
+                if not task.hard:                         #Если задача не жёсткая
+                    if tr.start < self.__time_line[i].start:     #Если задача начинается раньше не занятого отрезка то переносим задачу на начало отрезка
                         tr.start = self.__time_line[i].start
-                        if tr.end > task.end:
+                        if tr.end > task.end:                    #Если срок задачи истёк то не размещаем
                             return False
                 cr, tr = self.cross(self.__time_line[i], tr)
                 if len(cr) != 0:
@@ -729,10 +729,7 @@ class Time_norm:
 
     def get_norm(self, magnitude: str):
         """Возвращает норму времни по величине"""
-        if magnitude in self.norm:
-            return self.norm(magnitude)
-        else:
-            return 1.0
+        return self.norm.get(magnitude, 1.0)
 
 
 class Binary_store:
@@ -786,16 +783,10 @@ class cmd:
                     h = input('Жёсткая задача?(+): ')
                 if h == '+':
                     hd = self.current_task.HARD
-                    st = 0
                     pr = self.current_task.LOW
                     du = 0.0
                 else:
                     hd = self.current_task.NO_HARD
-                    st = input('Статус (0 - не начата, 1 - выполняется, 2 - ожидает, 3 - выполнена): ')
-                    if st != '':
-                        st = int(st)
-                    else:
-                        st = 0
                     if input('Важное?(+)') == '+':
                         pr = self.current_task.HIGH
                     else:
@@ -807,7 +798,7 @@ class cmd:
                         dig = ''
                         mag = ''
                         for i in du:
-                            if i.isdigit() or '.':
+                            if i in '0123456789.':
                                 dig += i
                             else:
                                 mag += i
@@ -816,7 +807,7 @@ class cmd:
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
                 self.current_list.add_task(
-                    Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, status=st, hard=hd, repeat_mode=rp))
+                    Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, hard=hd, repeat_mode=rp))
             elif p == 'с':                    #сохранить в файл задачи
                 self.s_t_d.save(self.main_list)
             elif p == 'о':                    #прочитать из файла задачи
@@ -826,7 +817,11 @@ class cmd:
                 if self.current_list.not_empty():
                     for i, task in enumerate(self.current_list.get_tasks()):
                         if task.progress < 100:
-                            print('--', i+1, '--', task)
+                            if task.hard:
+                                if task.end.date() >= date.today():
+                                    print('--', i+1, '--', task)
+                            else:
+                                print('--', i + 1, '--', task)
                 else:
                     print('Подзадачи отсутствуют')
             elif p == 'вып':                    #печать задач
@@ -946,14 +941,13 @@ class cmd:
             elif p == 'пи':                    #печать истории
                 self.hist = self.store_hist.load()
                 print(self.hist)
-            elif p == 'дн':
+            elif p == 'дн':                   #добавить норму
                 self.nm = self.s_n.load()
                 m = input('Норма: ')
                 n = float(input('Значение: '))
                 self.nm.add_norm(m, n)
                 self.s_n.save(self.nm)
-            elif p == 'пн':
-                self.nm = self.s_n.load()
+            elif p == 'пн':                   #печать норм
                 print(self.nm)
             elif p == 'кал':                   #вывод запланированных задач в файл календаря
                 cl = Calendar_tasks()
@@ -969,6 +963,7 @@ if __name__ == '__main__':
     s_n = Binary_store(FILENORM)
     s_h = Binary_store(FILEHIST)
     n = Time_norm()
+    n = s_n.load()
     t_history = Time_line()
     c = cmd(store_task=s_t, store_norm=s_n, norm=n, store_hist=s_h, hist=t_history)
     c.mainloop()
