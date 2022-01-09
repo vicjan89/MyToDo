@@ -1,5 +1,6 @@
 import datetime
 import pickle
+import json
 from datetime import *
 from PIL import Image
 from icalendar import Calendar as ical
@@ -349,6 +350,11 @@ class Task:
         self.attachment = attachment
         self.child_tasks = List_tasks()
 
+    def encode(self):
+        return dict(task=self.task, start=str(self.start), end=str(self.end), repeat_mode=self.repeat_mode,
+                    priority=self.priority, comment=self.comment, duration=self.duration, status=self.status,
+                    hard=self.hard, progress=self.progress)
+
     def get_tasks(self):
         r_l = []
         if len(self.child_tasks) > 0:
@@ -628,6 +634,12 @@ class List_tasks:
         """Создаёт список задач"""
         self.tasklist = []
 
+    def encode(self):
+        d_l_t = dict()
+        for ni, i in enumerate(self.tasklist):
+            d_l_t[ni] = i.encode()
+        return d_l_t
+
     def add_task(self, task: Task):
         """Добавляет задачу в список"""
         self.tasklist.append(task)
@@ -747,6 +759,18 @@ class Binary_store:
         with open(self.filename, 'rb') as file:
             return pickle.load(file)
 
+class Json_store:
+    def __init__(self, filename):
+        self.filename = filename
+
+    def save(self, object_store):
+        with open(self.filename, 'w') as file:
+            json.dump(object_store.encode(), file, indent=4, ensure_ascii=False)
+
+    def load(self):
+        """Читает задачу с подзадачами из бинарного файла"""
+        with open(self.filename, 'r') as file:
+            return json.load(file)
 
 class cmd:
     def __init__(self, store_task, store_norm, norm, store_hist, hist):
@@ -810,6 +834,8 @@ class cmd:
                     Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, hard=hd, repeat_mode=rp))
             elif p == 'с':                    #сохранить в файл задачи
                 self.s_t_d.save(self.main_list)
+                s_t_j = Json_store('todo.json')
+                s_t_j.save(self.main_list)
             elif p == 'о':                    #прочитать из файла задачи
                 self.main_list = self.s_t_d.load()
                 self.current_list = self.main_list
