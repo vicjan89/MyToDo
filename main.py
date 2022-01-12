@@ -323,7 +323,7 @@ class Attachments:
 
 
 class Task:
-    "Класс описания задачи"
+    """Класс описания задачи"""
 
     # Константы для класса Task
     NOREPEAT = 0
@@ -368,7 +368,8 @@ class Task:
                 r_l += item.get_tasks()
                 du += item.duration
             if self.duration > du:
-                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment, self.duration - du, self.status, self.hard, self.lables, self.attachment))
+                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
+                                self.duration - du, self.status, self.hard, self.lables, self.attachment))
         else:
             r_l.append(self)
         return r_l
@@ -625,13 +626,11 @@ class List_tasks:
         tsk = self.get_task(index)
         return tsk.tasklist
 
-    def get_tasks(self):
+    def iter_tasks(self):
         """Возвращает все задачи списка включая подзадачи"""
-        r_l = []
         if self.not_empty():
             for item in self.tasklist:
-                r_l = r_l + item.get_tasks()
-        return r_l
+                yield item.get_tasks()
 
     def get_hard(self):
         """Возвращает все жёсткие задачи в порядке времени окончания"""
