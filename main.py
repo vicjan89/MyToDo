@@ -626,11 +626,12 @@ class List_tasks:
         tsk = self.get_task(index)
         return tsk.tasklist
 
-    def iter_tasks(self):
+    def iterator(self):
         """Возвращает все задачи списка включая подзадачи"""
         if self.not_empty():
             for item in self.tasklist:
-                yield item.get_tasks()
+                for task in item.iterator
+                    yield task
 
     def get_hard(self):
         """Возвращает все жёсткие задачи в порядке времени окончания"""
