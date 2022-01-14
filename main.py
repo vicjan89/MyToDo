@@ -6,10 +6,6 @@ from PIL import Image
 from icalendar import Calendar as ical
 from icalendar import Event
 from calendar import *
-import colorama
-from colorama import Fore, Back, Style
-
-colorama.init()
 
 FILENAME = 'todo.dat'
 FILENORM = 'norm.dat'
@@ -323,7 +319,7 @@ class Attachments:
 
 
 class Task:
-    """Класс описания задачи"""
+    "Класс описания задачи"
 
     # Константы для класса Task
     NOREPEAT = 0
@@ -361,15 +357,13 @@ class Task:
 
     def get_tasks(self):
         r_l = []
-        if self.child_tasks.not_empty():
+        if len(self.child_tasks) > 0:
             du = 0.0
-            lst = self.child_tasks.get_tasks()
-            for item in lst:
+            for item in self.child_tasks:
                 r_l += item.get_tasks()
                 du += item.duration
             if self.duration > du:
-                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
-                                self.duration - du, self.status, self.hard, self.lables, self.attachment))
+                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment, self.duration - du, self.status, self.hard, self.lables, self.attachment))
         else:
             r_l.append(self)
         return r_l
@@ -428,7 +422,7 @@ class Task:
     def __str__(self):
         """Возвращает через функции print и str данные задачи без вложений в виде строки"""
         if self.priority:
-            pr = Fore.RED
+            pr = 'Важно!'
         else:
             pr = ''
         if self.hard:
@@ -445,8 +439,8 @@ class Task:
             sts = 'Выполнена'
         else:
             sts = 'Неправильный статус'
-        st_ret = pr + str(self.start) + '\t' + str(self.duration) + ' (' + str(self.progress) + '%)' + '\t' + self.task + '\t' + '\n' + str(
-            self.duration) + 'ч.' + '\t' + str(self.end) + '\t' + str(self.delta) + '\t'+ self.comment + '\t' + sts + '\t' + hr + '\n' + Style.RESET_ALL + '-' * 170
+        st_ret = str(self.start) + '\t' + str(self.duration) + ' (' + str(self.progress) + '%)' + '\t' + self.task + '\t' + pr + '\n' + str(
+            self.duration) + 'ч.' + '\t' + str(self.end) + '\t' + str(self.delta) + '\t'+ self.comment + '\t' + sts + '\t' + hr + '\n' + '-' * 100
         return st_ret
 
     @property
@@ -597,6 +591,44 @@ class Task:
         else:
             self.__progress = progress
 
+        #    def get_tasks(self):
+        '''Возвращает строку задачи и всех вложенных задач. Вложенные задачи имеют номер и отступ
+        st_ret = '\n' + self.td
+        if self.start != '':
+            if self.start.time() != time(0, 0, 0):
+                st_ret += ' Начало: ' + str(self.start)
+            else:
+                st_ret += ' Начало: ' + str(self.start.date())
+        if self.end != '':
+            if self.end.time() != time(23, 59, 59):
+                st_ret += ' Конец: ' + str(self.end)
+            else:
+                st_ret += ' Конец: ' + str(self.end.date())
+        if self.priority:
+            st_ret += ' Важно!'
+        if self.hard:
+            st_ret += ' Жёсткая '
+        if self.status == 0:
+            st_ret += ' Не начата '
+        elif self.status == 1:
+            st_ret += ' Выполняется '
+        elif self.status == 2:
+            st_ret += ' Ожидает '
+        elif self.status == 3:
+            st_ret += ' Выполнена '
+        else:
+            st_ret += ' Ошибочный статус '
+        if self.comment != '':
+            st_ret += ' Примечание: ' + self.comment
+        if len(self.child_tasks) != 0:
+            for n, i in enumerate(self.child_tasks):
+                st_ed = i.get_tasks()
+                st_ret += '\n' + '└─' + str(n+1)+ '──' + st_ed[5:]
+        st_ret = st_ret.replace('\n', '\n    ')
+        return st_ret
+'''
+
+
 class List_tasks:
     def __init__(self):
         """Создаёт список задач"""
@@ -626,11 +658,10 @@ class List_tasks:
         tsk = self.get_task(index)
         return tsk.tasklist
 
-    def iter_tasks(self):
-        """Возвращает все задачи списка включая подзадачи"""
+    def get_tasks(self):
+        """Возвращает все задачи списка"""
         if self.not_empty():
-            for item in self.tasklist:
-                yield item.get_tasks()
+            return self.tasklist
 
     def get_hard(self):
         """Возвращает все жёсткие задачи в порядке времени окончания"""
@@ -810,7 +841,6 @@ class cmd:
                 self.current_list = self.main_list
             elif p == 'п':                    #печать задач
                 if self.current_list.not_empty():
-                    j = self.current_list.get_tasks()
                     for i, task in enumerate(self.current_list.get_tasks()):
                         if task.progress < 100:
                             if task.hard:
