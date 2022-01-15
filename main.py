@@ -338,7 +338,7 @@ class Task:
     MISTAKE = 'mistake'
 
     def __init__(self, task='', start='', end='', repeat_mode=NOREPEAT, priority=LOW, comment='', duration=0.0, status=0,
-                 hard=NO_HARD, progress=0, lables=[], attachment=[]):
+                 hard=NO_HARD, lables=[], attachment=[]):
         """Создаёт задачу"""
         self.task = task
         self.start = start
@@ -349,7 +349,7 @@ class Task:
         self.duration = duration
         self.status = status
         self.hard = hard
-        self.progress = progress
+        self.progress = 0
         self.lables = lables
         self.attachment = attachment
         self.child_tasks = List_tasks()
@@ -357,21 +357,22 @@ class Task:
     def encode(self):
         return dict(task=self.task, start=str(self.start), end=str(self.end), repeat_mode=self.repeat_mode,
                     priority=self.priority, comment=self.comment, duration=self.duration, status=self.status,
-                    hard=self.hard, progress=self.progress, child_tasks=self.child_tasks.encode())
+                    hard=self.hard, progress=self.progress)
 
-
-    def iterator(self):
+    def get_tasks(self):
+        r_l = []
         if self.child_tasks.not_empty():
             du = 0.0
-            for item in self.child_tasks.iterator():
+            lst = self.child_tasks.get_tasks()
+            for item in lst:
+                r_l += item.get_tasks()
                 du += item.duration
-                item.task = self.task + ' / ' + item.task
-                yield item
             if self.duration > du:
-                yield Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
-                                self.duration - du, self.status, self.hard, self.progress, self.lables, self.attachment)
+                r_l.append(Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
+                                self.duration - du, self.status, self.hard, self.lables, self.attachment))
         else:
-            yield self
+            r_l.append(self)
+        return r_l
 
     @classmethod
     def verify_task_comment(cls, task_comment):
@@ -381,8 +382,8 @@ class Task:
 
     @classmethod
     def verify_start_end_type(cls, start_end):
-        if type(start_end) != str and type(start_end) != datetime:
-            raise TypeError('Должа быть строка или дата-время')
+        if type(start_end) != str:
+            raise TypeError('Должа быть строка')
         return True
 
     @classmethod
@@ -396,8 +397,6 @@ class Task:
                 format_start_end = '%d/%m/%y %H-%M'
             elif len(start_end) == 16 and start_end[2] == '/' and start_end[5] == '/' and start_end[10] == ' ' and start_end[13] == '-':
                 format_start_end = '%d/%m/%Y %H-%M'
-            elif len(start_end) == 19:
-                format_start_end = '%Y-%m-%d %H:%M:%S'
             else:
                 format_start_end = cls.MISTAKE
         else:
@@ -447,7 +446,7 @@ class Task:
         else:
             sts = 'Неправильный статус'
         st_ret = pr + str(self.start) + '\t' + str(self.duration) + ' (' + str(self.progress) + '%)' + '\t' + self.task + '\t' + '\n' + str(
-            self.duration) + 'ч.' + '\t' + str(self.end) + '\t' + str(self.delta) + '\t'+ self.comment + '\t' + sts + '\t' + hr + '\n' + Style.RESET_ALL + '-' * 150
+            self.duration) + 'ч.' + '\t' + str(self.end) + '\t' + str(self.delta) + '\t'+ self.comment + '\t' + sts + '\t' + hr + '\n' + Style.RESET_ALL + '-' * 170
         return st_ret
 
     @property
@@ -469,9 +468,7 @@ class Task:
     @start.setter
     def start(self, start):
         """Изменяет дату и время начала задачи"""
-        if type(start) == datetime:
-            self.__start = start
-        elif self.verify_start_end_type(start):
+        if self.verify_start_end_type(start):
             fmt = self.verify_start_end_format(start)
             if fmt == '' or fmt == self.MISTAKE:
                 self.__start = ''
@@ -486,9 +483,7 @@ class Task:
     @end.setter
     def end(self, end):
         """Изменяет дату и время окончания задачи"""
-        if type(end) == datetime:
-            self.__end = end
-        elif self.verify_start_end_type(end):
+        if self.verify_start_end_type(end):
             fmt = self.verify_start_end_format(end)
             if fmt == '' or fmt == self.MISTAKE:
                 self.__end = ''
@@ -613,16 +608,6 @@ class List_tasks:
             d_l_t[ni] = i.encode()
         return d_l_t
 
-    def decode(self, d_l_t):
-        for key, value in d_l_t.items():
-            value_without_child_tasks = {k: v for k, v in value.items() if k != 'child_tasks'}
-            task = Task(**value_without_child_tasks)
-            if value['child_tasks'] != {}:
-                l_t = List_tasks()
-                task.child_tasks = l_t.decode(value['child_tasks'])
-            self.tasklist.append(task)
-        return self
-
     def add_task(self, task: Task):
         """Добавляет задачу в список"""
         self.tasklist.append(task)
@@ -641,12 +626,11 @@ class List_tasks:
         tsk = self.get_task(index)
         return tsk.tasklist
 
-    def iterator(self):
+    def iter_tasks(self):
         """Возвращает все задачи списка включая подзадачи"""
         if self.not_empty():
             for item in self.tasklist:
-                for task in item.iterator():
-                    yield task
+                yield item.get_tasks()
 
     def get_hard(self):
         """Возвращает все жёсткие задачи в порядке времени окончания"""
@@ -754,12 +738,8 @@ class Json_store:
 
     def load(self):
         """Читает задачу с подзадачами из бинарного файла"""
-        l_t = List_tasks()
         with open(self.filename, 'r') as file:
-            dict_list_tasks = json.load(file)
-        l_t.decode(dict_list_tasks)
-        return l_t
-
+            return json.load(file)
 
 class cmd:
     def __init__(self, store_task, store_norm, norm, store_hist, hist):
@@ -823,31 +803,21 @@ class cmd:
                     Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, hard=hd, repeat_mode=rp))
             elif p == 'с':                    #сохранить в файл задачи
                 self.s_t_d.save(self.main_list)
+                s_t_j = Json_store('todo.json')
+                s_t_j.save(self.main_list)
             elif p == 'о':                    #прочитать из файла задачи
                 self.main_list = self.s_t_d.load()
                 self.current_list = self.main_list
-            elif p == 'пв':                    #печать задач
-                for i, task in enumerate(self.current_list.iterator()):
+            elif p == 'п':                    #печать задач
+                if self.current_list.not_empty():
+                    j = self.current_list.get_tasks()
+                    for i, task in enumerate(self.current_list.get_tasks()):
                         if task.progress < 100:
                             if task.hard:
                                 if task.end.date() >= date.today():
                                     print('--', i+1, '--', task)
                             else:
                                 print('--', i + 1, '--', task)
-                else:
-                    print('Подзадачи отсутствуют')
-            elif p == 'п':                    #печать задач
-                for i, task in enumerate(self.current_list.tasklist):
-                        if task.progress < 100:
-                            if task.child_tasks.not_empty():
-                                txt = '...'
-                            else:
-                                txt = ''
-                            if task.hard:
-                                if task.end.date() >= date.today():
-                                    print('--', i+1, txt, '--', task)
-                            else:
-                                print('--', i + 1, txt, '--', task)
                 else:
                     print('Подзадачи отсутствуют')
             elif p == 'вып':                    #печать задач
@@ -985,7 +955,7 @@ class cmd:
 
 
 if __name__ == '__main__':
-    s_t = Json_store('todo.json')
+    s_t = Binary_store(FILENAME)
     s_n = Binary_store(FILENORM)
     s_h = Binary_store(FILEHIST)
     n = Time_norm()
