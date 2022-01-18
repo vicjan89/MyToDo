@@ -200,7 +200,7 @@ class Time_line:
         i = 0
         stop = True
         while stop:
-            if i == l_i or (ts_ni[ni].end < (tl.get_time_after(ts_i[i].delta + ts_ni[ni].delta))):
+            if i == l_i or (ni != l_ni and (ts_ni[ni].end < (tl.get_time_after(ts_i[i].delta + ts_ni[ni].delta)))):
                 if not tl.add_task(ts_ni[ni]):
                     not_posted.append(ts_ni[ni])
                 ni += 1
