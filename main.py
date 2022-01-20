@@ -231,8 +231,6 @@ class Time_line:
         находится ранее time_free то возвращает None."""
         ls = []
         if time_free.summary == '':
-            if time_free.start >= time_task.end:
-                    remainder = None
             if time_free.start > time_task.start:
                 if time_free.end == time_task.end:
                     ls.append(Time_range(time_free.start, time_free.delta, time_task.summary, time_task.description))
@@ -241,6 +239,12 @@ class Time_line:
                     ls.append(Time_range(time_free.start, time_task.end - time_free.start, time_task.summary, time_task.description))
                     ls.append(Time_range(time_task.end, time_free.end - time_task.end))
                     remainder = None
+                elif time_free.start >= time_task.end:
+                    remainder = None
+                else:
+                    ls.append(Time_range(time_free.start, time_free.delta, time_task.summary, time_task.description))
+                    remainder = Time_range(time_free.end, time_task.end - time_free.end, time_task.summary,
+                                           time_task.description)
             if time_free.start == time_task.start:
                 if time_task.end == time_free.end:
                     ls.append(time_task)
@@ -985,7 +989,7 @@ class cmd:
 
 
 if __name__ == '__main__':
-    s_t = Json_store('todo.json')
+    s_t = Json_store('C:/todo.json')
     s_n = Binary_store(FILENORM)
     s_h = Binary_store(FILEHIST)
     n = Time_norm()
