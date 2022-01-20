@@ -12,8 +12,8 @@ from colorama import Fore, Back, Style
 colorama.init()
 
 FILENAME = 'todo.dat'
-FILENORM = 'norm.dat'
-FILEHIST = 'hist.dat'
+FILENORM = 'C:/norm.dat'
+FILEHIST = 'C:/hist.dat'
 INDENT = '    '
 
 class Time_range:
@@ -993,7 +993,7 @@ if __name__ == '__main__':
     s_n = Binary_store(FILENORM)
     s_h = Binary_store(FILEHIST)
     n = Time_norm()
-    n = s_n.load()
+#    n = s_n.load()
     t_history = Time_line()
     c = cmd(store_task=s_t, store_norm=s_n, norm=n, store_hist=s_h, hist=t_history)
     c.mainloop()
