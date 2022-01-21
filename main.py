@@ -369,8 +369,8 @@ class Task:
             du = 0.0
             for item in self.child_tasks.iterator():
                 du += item.duration
-                item.task = self.task + ' / ' + item.task
-                yield item
+                yield Task(self.task + ' / ' + item.task, item.start, item.end, item.repeat_mode, item.priority,
+                           item.comment, item.duration, item.status, item.hard, item.progress, item.lables, item.attachment)
             if self.duration > du:
                 yield Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
                                 self.duration - du, self.status, self.hard, self.progress, self.lables, self.attachment)
@@ -775,12 +775,12 @@ class cmd:
     def __init__(self, store_task, store_norm, store_hist, hist):
         """Создаёт объект командной строки"""
         self.current = []
-        self.current_task = Task()
         self.s_t_d = store_task
         self.s_n = store_norm
         self.nm = self.s_n.load()
-        self.main_list = self.s_t_d.load()
-        self.current_list = self.main_list
+        self.s_t_d.load()
+        self.current_list = self.s_t_d.object_store
+        self.current_task = Task()
         self.store_hist = store_hist
         self.hist = hist
 
@@ -789,7 +789,7 @@ class cmd:
         stop = False
         while not stop:
             prompt = ''                              #создание строки приглашения ко вводу
-            self.current_list = self.main_list
+            self.current_list = self.s_t_d.object_store
             for s_pr in self.current:
                 self.current_task = self.current_list.get_task(s_pr)
                 self.current_list = self.current_task.child_tasks
@@ -834,8 +834,8 @@ class cmd:
             elif p == 'с':                    #сохранить в файл задачи
                 self.s_t_d.save()
             elif p == 'о':                    #прочитать из файла задачи
-                self.main_list = self.s_t_d.load()
-                self.current_list = self.main_list
+                self.s_t_d.load()
+                self.current_list = self.s_t_d.object_store
             elif p == 'пв':                    #печать задач
                 for i, task in enumerate(self.current_list.iterator()):
                         if task.progress < 100:
@@ -878,7 +878,7 @@ class cmd:
                 tl = Time_line()
                 tl.generate_work_time()
                 line_sub_tasks = List_tasks()
-                for task in self.main_list.iterator():
+                for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
                 np = tl.add_tasks(line_sub_tasks)
                 print(tl.day(date.today()))
