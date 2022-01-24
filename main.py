@@ -11,10 +11,9 @@ from colorama import Fore, Back, Style
 
 colorama.init()
 
-FILENAME = 'todo.dat'
-FILENORM = 'norm.dat'
-FILEHIST = 'hist.dat'
-INDENT = '    '
+FILENAME = 'C:/todo.dat'
+FILENORM = 'C:/norm.dat'
+FILEHIST = 'C:/hist.dat'
 
 class Time_range:
     def __init__(self, start, delta, summary='', description = ''):
@@ -187,11 +186,11 @@ class Time_line:
             lng = len(self.__time_line)
         return False
 
-    def add_tasks(self, tl, tasks):
+    def add_tasks(self, tasks):
         not_posted = []
         for ts in tasks.get_hard():
-            if not tl.add_task(ts) and ts.repeat_mode == 0:
-                not_posted.append(ts)
+            if not self.add_task(ts) and ts.repeat_mode == 0:
+                    not_posted.append(ts)
         ts_ni = tasks.get_not_important()
         ts_i = tasks.get_important()
         l_ni = len(ts_ni)
@@ -200,12 +199,12 @@ class Time_line:
         i = 0
         stop = True
         while stop:
-            if i == l_i or (ni != l_ni and (ts_ni[ni].end < (tl.get_time_after(ts_i[i].delta + ts_ni[ni].delta)))):
-                if not tl.add_task(ts_ni[ni]):
+            if i == l_i or (ni != l_ni and (ts_ni[ni].end < (self.get_time_after(ts_i[i].delta + ts_ni[ni].delta)))):
+                if not self.add_task(ts_ni[ni]):
                     not_posted.append(ts_ni[ni])
                 ni += 1
             else:
-                if not tl.add_task(ts_i[i]):
+                if not self.add_task(ts_i[i]):
                     not_posted.append(ts_i[i])
                 i += 1
             if i == l_i and ni == l_ni:
@@ -313,7 +312,6 @@ class Lables:
                 ls.append(self.lables_list[li])
         return ls
 
-
 class Attachments:
     def __init__(self):
         """Создание объекта хранения вложений"""
@@ -324,7 +322,6 @@ class Attachments:
         img = Image.open(r"C:\Users\Виктор\Pictures\soul-knight-unreleased--ico.jpg")
         img.thumbnail(size)
         img.show()
-
 
 class Task:
     """Класс описания задачи"""
@@ -369,8 +366,8 @@ class Task:
             du = 0.0
             for item in self.child_tasks.iterator():
                 du += item.duration
-                item.task = self.task + ' / ' + item.task
-                yield item
+                yield Task(self.task + ' / ' + item.task, item.start, item.end, item.repeat_mode, item.priority,
+                           item.comment, item.duration, item.status, item.hard, item.progress, item.lables, item.attachment)
             if self.duration > du:
                 yield Task(self.task, self.start, self.end, self.repeat_mode, self.priority, self.comment,
                                 self.duration - du, self.status, self.hard, self.progress, self.lables, self.attachment)
@@ -712,7 +709,6 @@ class List_tasks:
         """Сортирует задачи по возрастанию срока окончания."""
         self.tasklist.sort(key=lambda tl: tl.end)
 
-
 class Time_norm:
     def __init__(self):
         """Создаёт объект хранения норм времни"""
@@ -724,6 +720,12 @@ class Time_norm:
             r_s += key + " => " + str(value)+'\n'
         return r_s
 
+    def encode(self):
+        return self.norm
+
+    def decode(self, norm):
+        self.norm = norm
+
     def add_norm(self, magnitude: str, norm: float):
         """Добавляет единицу измерения и её норму времни"""
         self.norm[magnitude] = norm
@@ -731,7 +733,6 @@ class Time_norm:
     def get_norm(self, magnitude: str):
         """Возвращает норму времни по величине"""
         return self.norm.get(magnitude, 1.0)
-
 
 class Binary_store:
     def __init__(self, filename):
@@ -749,32 +750,31 @@ class Binary_store:
             return pickle.load(file)
 
 class Json_store:
-    def __init__(self, filename):
+    def __init__(self, filename, object_store):
         self.filename = filename
+        self.object_store = object_store
 
-    def save(self, object_store):
+    def save(self):
         with open(self.filename, 'w') as file:
-            json.dump(object_store.encode(), file, indent=4, ensure_ascii=False)
+            json.dump(self.object_store.encode(), file, indent=4, ensure_ascii=False)
 
     def load(self):
-        """Читает задачу с подзадачами из бинарного файла"""
-        l_t = List_tasks()
+        """Читает данные из файла json"""
         with open(self.filename, 'r') as file:
             dict_list_tasks = json.load(file)
-        l_t.decode(dict_list_tasks)
-        return l_t
-
+        self.object_store.decode(dict_list_tasks)
+        return self.object_store
 
 class cmd:
-    def __init__(self, store_task, store_norm, norm, store_hist, hist):
+    def __init__(self, store_task, store_norm, store_hist, hist):
         """Создаёт объект командной строки"""
         self.current = []
-        self.current_task = Task()
         self.s_t_d = store_task
         self.s_n = store_norm
-        self.nm = norm
-        self.main_list = self.s_t_d.load()
-        self.current_list = self.main_list
+        self.nm = self.s_n.load()
+        self.s_t_d.load()
+        self.current_list = self.s_t_d.object_store
+        self.current_task = Task()
         self.store_hist = store_hist
         self.hist = hist
 
@@ -783,7 +783,7 @@ class cmd:
         stop = False
         while not stop:
             prompt = ''                              #создание строки приглашения ко вводу
-            self.current_list = self.main_list
+            self.current_list = self.s_t_d.object_store
             for s_pr in self.current:
                 self.current_task = self.current_list.get_task(s_pr)
                 self.current_list = self.current_task.child_tasks
@@ -826,10 +826,10 @@ class cmd:
                 self.current_list.add_task(
                     Task(task=n, start=s, end=e, priority=pr, comment=c, duration=du, hard=hd, repeat_mode=rp))
             elif p == 'с':                    #сохранить в файл задачи
-                self.s_t_d.save(self.main_list)
+                self.s_t_d.save()
             elif p == 'о':                    #прочитать из файла задачи
-                self.main_list = self.s_t_d.load()
-                self.current_list = self.main_list
+                self.s_t_d.load()
+                self.current_list = self.s_t_d.object_store
             elif p == 'пв':                    #печать задач
                 for i, task in enumerate(self.current_list.iterator()):
                         if task.progress < 100:
@@ -838,8 +838,6 @@ class cmd:
                                     print('--', i+1, '--', task)
                             else:
                                 print('--', i + 1, '--', task)
-                else:
-                    print('Подзадачи отсутствуют')
             elif p == 'п':                    #печать задач
                 for i, task in enumerate(self.current_list.tasklist):
                         if task.progress < 100:
@@ -852,8 +850,6 @@ class cmd:
                                     print('--', i+1, txt, '--', task)
                             else:
                                 print('--', i + 1, txt, '--', task)
-                else:
-                    print('Подзадачи отсутствуют')
             elif p == 'вып':                    #печать задач
                 if self.current_list.not_empty():
                     for i, task in enumerate(self.current_list.get_tasks()):
@@ -862,7 +858,7 @@ class cmd:
                 else:
                     print('Подзадачи отсутствуют')
             elif p == 'в':                    #выход
-                self.s_t_d.save(self.main_list)
+                self.s_t_d.save()
                 stop = True
             elif p.isdigit():                 #выбор задачи по номеру
                 p = int(p) - 1
@@ -875,7 +871,10 @@ class cmd:
             elif p == 'д':                    #вывод задач на день
                 tl = Time_line()
                 tl.generate_work_time()
-                np = tl.add_tasks(tl, self.current_list)
+                line_sub_tasks = List_tasks()
+                for task in self.s_t_d.object_store.iterator():
+                    line_sub_tasks.add_task(task)
+                np = tl.add_tasks(line_sub_tasks)
                 print(tl.day(date.today()))
                 if len(np) > 0:
                     print('Не размещены:')
@@ -884,7 +883,10 @@ class cmd:
             elif p == 'з':                    #вывод задач на завтра
                 tl = Time_line()
                 tl.generate_work_time()
-                np = tl.add_tasks(tl, self.current_list)
+                line_sub_tasks = List_tasks()
+                for task in self.s_t_d.object_store.iterator():
+                    line_sub_tasks.add_task(task)
+                np = tl.add_tasks(line_sub_tasks)
                 print(tl.day(date.today() + timedelta(days=1)))
                 if len(np) > 0:
                     print('Не размещены:')
@@ -893,7 +895,10 @@ class cmd:
             elif p == 'н':                    #вывод задач на неделю
                 tl = Time_line()
                 tl.generate_work_time()
-                np = tl.add_tasks(tl, self.current_list)
+                line_sub_tasks = List_tasks()
+                for task in self.s_t_d.object_store.iterator():
+                    line_sub_tasks.add_task(task)
+                np = tl.add_tasks(line_sub_tasks)
                 print(tl.get_str(date.today(), timedelta(days=7)))
                 if len(np) > 0:
                     print('Не размещены:')
@@ -902,7 +907,10 @@ class cmd:
             elif p == 'м':                    #вывод задач на месяц
                 tl = Time_line()
                 tl.generate_work_time()
-                np = tl.add_tasks(tl, self.current_list)
+                line_sub_tasks = List_tasks()
+                for task in self.s_t_d.object_store.iterator():
+                    line_sub_tasks.add_task(task)
+                np = tl.add_tasks(line_sub_tasks)
                 print(tl.get_str(date.today(), timedelta(days=30)))
                 if len(np) > 0:
                     print('Не размещены:')
@@ -957,7 +965,10 @@ class cmd:
             elif p == 'пл':                    #планирование задач по линии времени
                 tl = Time_line()
                 tl.generate_work_time()
-                np = tl.add_tasks(tl, self.current_list)
+                line_sub_tasks = List_tasks()
+                for task in self.s_t_d.object_store.iterator():
+                    line_sub_tasks.add_task(task)
+                np = tl.add_tasks(line_sub_tasks)
                 print(tl)
                 if len(np) > 0:
                     print('Не размещены:')
@@ -976,7 +987,7 @@ class cmd:
                 m = input('Норма: ')
                 n = float(input('Значение: '))
                 self.nm.add_norm(m, n)
-                self.s_n.save(self.nm)
+                self.s_n.save()
             elif p == 'пн':                   #печать норм
                 print(self.nm)
             elif p == 'кал':                   #вывод запланированных задач в файл календаря
@@ -984,16 +995,43 @@ class cmd:
                 cal_str = cl.add_events(tl)
                 with open('my_calendar.ics', 'wb') as file:
                     file.write(cal_str)
+            elif p == 'пом':
+                print('''+
+с   - сохранить главный список задач;
+о   - открыть файл и загрузить главный список задач;
+пв  - печать всех задач включая подзадачи;
+п   - печать текущего списка задач с номерами но без подзадач;
+вып - печать выполненных задач;
+в   - сохранение и выход;
+..  - возврат на уровень выше;
+д   - план на сегодняшний день;
+з   - план на завтрашний день;
+н   - план на неделю;
+м   - план на месяц;
+ст  - изменение статуса текущей задачи;
+уд  - удалить задачу (будет запрошен номер задачи);
+ред - редактировать текст задачи;
+ком - редактировать комментарий к задаче;
+ж   - изменить жёсткость текущей задачи;
+важ - изменить важность текущей задачи;
+пр  - изменить прогресс текущей задачи;
+нач - изменить дату и время начала текущей задачи;
+кон - изменить дату и время конца текущей задачи;
+тр  - изменить трудоёмкость текущей задачи;
+пов - измнить режим повторения текущей задачи;
+пл  - планировать все задачи с подзадачами на линии времени;
+си  - сохранить задачи текущего дня в историю; 
+пи  - печать истории;
+дн  - добавить норму времени;
+пн  - печать норм времени;
+кал - вывод заполненной задачами линии времени в файл календаря.''')
             else:
                 print('Недопустимая команда!')
 
-
 if __name__ == '__main__':
-    s_t = Json_store('C:/todo.json')
-    s_n = Binary_store(FILENORM)
+    s_t = Json_store('C:/todo/todo.json', List_tasks())
+    s_n = Json_store(r'C:/todo/norm.json', Time_norm())
     s_h = Binary_store(FILEHIST)
-    n = Time_norm()
-    n = s_n.load()
     t_history = Time_line()
-    c = cmd(store_task=s_t, store_norm=s_n, norm=n, store_hist=s_h, hist=t_history)
+    c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, hist=t_history)
     c.mainloop()
