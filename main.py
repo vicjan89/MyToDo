@@ -8,6 +8,7 @@ from icalendar import Event
 from calendar import *
 import colorama
 from colorama import Fore, Back, Style
+from sys import argv
 
 colorama.init()
 
@@ -78,10 +79,15 @@ class Time_range:
         return str(self.__start) + ' ' + str(self.__start + self.__delta) + ' ' + self .__summary + ' ' + self.__description
 
 class Time_line:
+    WORK=0
+    NON_WORKING=1
     def __init__(self):
         self.__time_line = []
 
-    def generate_work_time(self):
+    def generate_work_time(self, time_type=WORK):
+        '''Размечает время на линии как свободное в зависимости от time_type. Если WORK то в будни рабочее время с 8 до 17 с
+         перерывом на обед с 12 до 13. Если NON_WORKING то в будни с 17 до 23 а в выходные с 8 до 23'''
+
         today = date.today()
         cal = Calendar()
         yr = today.year
@@ -96,19 +102,37 @@ class Time_line:
         if tm2 > 12:
             tm2 = tm2 - 12
             yr2 += 1
-        for d in cal.itermonthdates(yr, tm):
-            if d >= today:
+        if time_type == self.WORK:
+            for d in cal.itermonthdates(yr, tm):
+                if d >= today:
+                    if 0 <= d.weekday() <= 4:
+                        self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
+                        self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+            for d in cal.itermonthdates(yr1, tm1):
                 if 0 <= d.weekday() <= 4:
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
                     self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
-        for d in cal.itermonthdates(yr1, tm1):
-            if 0 <= d.weekday() <= 4:
-                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
-                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
-        for d in cal.itermonthdates(yr2, tm2):
-            if 0 <= d.weekday() <= 4:
-                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
-                self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+            for d in cal.itermonthdates(yr2, tm2):
+                if 0 <= d.weekday() <= 4:
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=4)))
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 13), timedelta(hours=4)))
+        else:
+            for d in cal.itermonthdates(yr, tm):
+                if d >= today:
+                    if 0 <= d.weekday() <= 4:
+                        self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 17), timedelta(hours=6)))
+                    else:
+                        self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=15)))
+            for d in cal.itermonthdates(yr1, tm1):
+                if 0 <= d.weekday() <= 4:
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 17), timedelta(hours=6)))
+                else:
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=15)))
+            for d in cal.itermonthdates(yr2, tm2):
+                if 0 <= d.weekday() <= 4:
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 17), timedelta(hours=6)))
+                else:
+                    self.__time_line.append(Time_range(datetime(d.year, d.month, d.day, 8), timedelta(hours=15)))
         for d in self.__time_line:
             if self.__time_line.count(d) > 1:
                 self.__time_line.remove(d)
@@ -766,7 +790,7 @@ class Json_store:
         return self.object_store
 
 class cmd:
-    def __init__(self, store_task, store_norm, store_hist, hist):
+    def __init__(self, store_task, store_norm, store_hist, hist, time_type):
         """Создаёт объект командной строки"""
         self.current = []
         self.s_t_d = store_task
@@ -777,6 +801,7 @@ class cmd:
         self.current_task = Task()
         self.store_hist = store_hist
         self.hist = hist
+        self.time_type = int(time_type)
 
     def mainloop(self):
         """Главный цикл обработки команд"""
@@ -870,7 +895,7 @@ class cmd:
                     self.current.pop()
             elif p == 'д':                    #вывод задач на день
                 tl = Time_line()
-                tl.generate_work_time()
+                tl.generate_work_time(self.time_type)
                 line_sub_tasks = List_tasks()
                 for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
@@ -882,7 +907,7 @@ class cmd:
                     print(t)
             elif p == 'з':                    #вывод задач на завтра
                 tl = Time_line()
-                tl.generate_work_time()
+                tl.generate_work_time(self.time_type)
                 line_sub_tasks = List_tasks()
                 for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
@@ -894,7 +919,7 @@ class cmd:
                     print(t)
             elif p == 'н':                    #вывод задач на неделю
                 tl = Time_line()
-                tl.generate_work_time()
+                tl.generate_work_time(self.time_type)
                 line_sub_tasks = List_tasks()
                 for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
@@ -906,7 +931,7 @@ class cmd:
                     print(t)
             elif p == 'м':                    #вывод задач на месяц
                 tl = Time_line()
-                tl.generate_work_time()
+                tl.generate_work_time(self.time_type)
                 line_sub_tasks = List_tasks()
                 for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
@@ -964,7 +989,7 @@ class cmd:
                     self.current_task.repeat_mode = 0
             elif p == 'пл':                    #планирование задач по линии времени
                 tl = Time_line()
-                tl.generate_work_time()
+                tl.generate_work_time(self.time_type)
                 line_sub_tasks = List_tasks()
                 for task in self.s_t_d.object_store.iterator():
                     line_sub_tasks.add_task(task)
@@ -1029,9 +1054,10 @@ class cmd:
                 print('Недопустимая команда!')
 
 if __name__ == '__main__':
-    s_t = Json_store('C:/todo/todo.json', List_tasks())
-    s_n = Json_store(r'C:/todo/norm.json', Time_norm())
+    script, first, second, time_type = argv
+    s_t = Json_store(first, List_tasks())
+    s_n = Json_store(second, Time_norm())
     s_h = Binary_store(FILEHIST)
     t_history = Time_line()
-    c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, hist=t_history)
+    c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, hist=t_history, time_type=time_type)
     c.mainloop()
