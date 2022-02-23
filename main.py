@@ -78,6 +78,9 @@ class Time_range:
     def __str__(self):
         return str(self.__start) + ' ' + str(self.__start + self.__delta) + ' ' + self .__summary + ' ' + self.__description
 
+    def encode(self):
+        return dict(summary=self.__summary, start=str(self.__start), delta=str(self.__delta), description=self.__description)
+
 class Time_line:
     WORK=0
     NON_WORKING=1
@@ -213,7 +216,8 @@ class Time_line:
     def add_tasks(self, tasks):
         not_posted = []
         for ts in tasks.get_hard():
-            if not self.add_task(ts) and ts.repeat_mode == 0:
+            if ts.start < self.__time_line[-1].end:
+                if not self.add_task(ts) and ts.repeat_mode == 0:
                     not_posted.append(ts)
         ts_ni = tasks.get_not_important()
         ts_i = tasks.get_important()
@@ -224,12 +228,14 @@ class Time_line:
         stop = True
         while stop:
             if i == l_i or (ni != l_ni and (ts_ni[ni].end < (self.get_time_after(ts_i[i].delta + ts_ni[ni].delta)))):
-                if not self.add_task(ts_ni[ni]):
-                    not_posted.append(ts_ni[ni])
+                if ts_ni[ni].start < self.__time_line[-1].end:
+                    if not self.add_task(ts_ni[ni]):
+                        not_posted.append(ts_ni[ni])
                 ni += 1
             else:
-                if not self.add_task(ts_i[i]):
-                    not_posted.append(ts_i[i])
+                if ts_i[i].start < self.__time_line[-1].end:
+                    if not self.add_task(ts_i[i]):
+                        not_posted.append(ts_i[i])
                 i += 1
             if i == l_i and ni == l_ni:
                 stop = False
@@ -298,6 +304,13 @@ class Time_line:
         else:
             remainder = time_task
         return ls, remainder
+
+    def encode(self):
+        d = {}
+        for num, item in enumerate(self.__time_line):
+            d[num] = item.encode()
+        return d
+
 
 class Calendar_tasks:
     def __init__(self):
@@ -1054,10 +1067,13 @@ class cmd:
                 print('Недопустимая команда!')
 
 if __name__ == '__main__':
-    script, first, second, time_type = argv
+    script, first, second, third, time_type = argv
     s_t = Json_store(first, List_tasks())
     s_n = Json_store(second, Time_norm())
     s_h = Binary_store(FILEHIST)
+    hist = s_h.load()
+    s_h_json = Json_store(third, hist)
+    s_h_json.save()
     t_history = Time_line()
     c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, hist=t_history, time_type=time_type)
     c.mainloop()
