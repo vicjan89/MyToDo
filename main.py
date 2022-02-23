@@ -792,12 +792,12 @@ class Json_store:
         self.object_store = object_store
 
     def save(self):
-        with open(self.filename, 'w') as file:
+        with open(self.filename, 'w', encoding='utf-8') as file:
             json.dump(self.object_store.encode(), file, indent=4, ensure_ascii=False)
 
     def load(self):
         """Читает данные из файла json"""
-        with open(self.filename, 'r') as file:
+        with open(self.filename, 'r', encoding='utf-8') as file:
             dict_list_tasks = json.load(file)
         self.object_store.decode(dict_list_tasks)
         return self.object_store
