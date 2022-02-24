@@ -81,6 +81,14 @@ class Time_range:
     def encode(self):
         return dict(summary=self.__summary, start=str(self.__start), delta=str(self.__delta), description=self.__description)
 
+    @staticmethod
+    def decode(dict_time_range):
+        hours,minutes,seconds = map(int, dict_time_range['delta'].split(':'))
+        return Time_range(datetime.strptime(dict_time_range['start'], Task.verify_start_end_format(dict_time_range['start'])),
+                                    timedelta(hours=hours, minutes=minutes, seconds=seconds),
+                                    dict_time_range['summary'],
+                                    dict_time_range['description'])
+
 class Time_line:
     WORK=0
     NON_WORKING=1
@@ -145,6 +153,9 @@ class Time_line:
         for i in self.__time_line:
             r_s += str(i)+'\n'
         return r_s
+
+    def append(self, time_range):
+        self.__time_line.append(time_range)
 
     def get(self):
         return self.__time_line
@@ -310,6 +321,13 @@ class Time_line:
         for num, item in enumerate(self.__time_line):
             d[num] = item.encode()
         return d
+
+    def decode(self, dict_time_line):
+        obj_time_line = Time_line()
+        for key in dict_time_line:
+            d = dict_time_line[key]
+            obj_time_line.append(Time_range.decode(dict_time_line[key]))
+        return obj_time_line
 
 
 class Calendar_tasks:
@@ -798,12 +816,12 @@ class Json_store:
     def load(self):
         """Читает данные из файла json"""
         with open(self.filename, 'r', encoding='utf-8') as file:
-            dict_list_tasks = json.load(file)
-        self.object_store.decode(dict_list_tasks)
+            dict_obj = json.load(file)
+        self.object_store = self.object_store.decode(dict_obj)
         return self.object_store
 
 class cmd:
-    def __init__(self, store_task, store_norm, store_hist, hist, time_type):
+    def __init__(self, store_task, store_norm, store_hist, time_type):
         """Создаёт объект командной строки"""
         self.current = []
         self.s_t_d = store_task
@@ -813,7 +831,6 @@ class cmd:
         self.current_list = self.s_t_d.object_store
         self.current_task = Task()
         self.store_hist = store_hist
-        self.hist = hist
         self.time_type = int(time_type)
 
     def mainloop(self):
@@ -1014,12 +1031,10 @@ class cmd:
                     print(t)
             elif p == 'си':                    #сохранить текущий день в историю
                 h = tl.copy_day(date.today())
-                self.hist = self.store_hist.load()
-                self.hist.paste_time_range(h)
-                self.store_hist.save(self.hist)
+                self.store_hist.load().paste_time_range(h)
+                self.store_hist.save()
             elif p == 'пи':                    #печать истории
-                self.hist = self.store_hist.load()
-                print(self.hist)
+                print(self.store_hist.load())
             elif p == 'дн':                   #добавить норму
                 self.nm = self.s_n.load()
                 m = input('Норма: ')
@@ -1070,10 +1085,6 @@ if __name__ == '__main__':
     script, first, second, third, time_type = argv
     s_t = Json_store(first, List_tasks())
     s_n = Json_store(second, Time_norm())
-    s_h = Binary_store(FILEHIST)
-    hist = s_h.load()
-    s_h_json = Json_store(third, hist)
-    s_h_json.save()
-    t_history = Time_line()
-    c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, hist=t_history, time_type=time_type)
+    s_h = Json_store(third, Time_line())
+    c = cmd(store_task=s_t, store_norm=s_n, store_hist=s_h, time_type=time_type)
     c.mainloop()
