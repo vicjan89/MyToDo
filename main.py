@@ -17,16 +17,17 @@ FILENORM = 'C:/norm.dat'
 FILEHIST = 'C:/hist.dat'
 
 class Time_range:
-    def __init__(self, start, delta, summary='', description = ''):
+    def __init__(self, start, delta, summary='', description = '', priority = False):
         self.__summary = summary
         self.__start = start
         self.__delta = delta
         self.__description = description
+        self.__priority = priority
 
     def __eq__(self, other):
         if other != None:
             if self.__summary == other.__summary and self.__start == other.__start and (
-                self.__delta == other.__delta) and self.__description == other.__description:
+                self.__delta == other.__delta) and self.__description == other.__description and self.__priority == other.__priority:
                 return True
             else:
                 return False
@@ -75,8 +76,23 @@ class Time_range:
         else:
             raise TypeError('description должно быть строкой')
 
+    @property
+    def priority(self):
+        return self.__priority
+
+    @priority.setter
+    def priority(self, priority):
+        if type(description) == bool:
+            self.__priority = priority
+        else:
+            raise TypeError('priority должно быть булевым')
+
     def __str__(self):
-        return str(self.__start) + ' ' + str(self.__start + self.__delta) + ' ' + self .__summary + ' ' + self.__description
+        if self.__priority:
+            clr = Fore.GREEN
+        else:
+            clr = Fore.RED
+        return clr + str(self.__start) + ' ' + str(self.__start + self.__delta) + ' ' + self .__summary + ' ' + self.__description + Style.RESET_ALL
 
     def encode(self):
         return dict(summary=self.__summary, start=str(self.__start), delta=str(self.__delta), description=self.__description)
@@ -168,6 +184,7 @@ class Time_line:
         return r_s
 
     def day(self, day):
+        '''Возвращает строку с задачами, начинающимися сегодня'''
         r_s = ''
         for i in self.__time_line:
             if i.start.date() == day:
@@ -189,8 +206,8 @@ class Time_line:
         """Добавляет задачу в наиболее раннее свободное время в пересечении множества оставшихся свободных отрезков
          времени и отрезка времени задачи. Жёсткие задачи добавляет точно в срок. Повторяющиеся задачи рассматривает
         как жёсткие. Если задача размещена то возвращает True иначе False"""
-        tr = Time_range(task.start, task.delta, task.task, task.comment)
-        tr_rp = Time_range(task.start, task.delta, task.task, task.comment)
+        tr = Time_range(task.start, task.delta, task.task, task.comment, task.priority)
+        tr_rp = Time_range(task.start, task.delta, task.task, task.comment, task.priority)
         lng = len(self.__time_line)
         i = 0
         while i < lng:
@@ -211,11 +228,11 @@ class Time_line:
                 if tr == None:
                     if task.repeat_mode == 1:
                         tr_rp.start = tr_rp.start + timedelta(days=1.0)
-                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description)
+                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description, tr_rp.priority)
                         i = 0
                     elif task.repeat_mode == 2:
                         tr_rp.start = tr_rp.start + timedelta(weeks=1.0)
-                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description)
+                        tr = Time_range(tr_rp.start, tr_rp.delta, tr_rp.summary, tr_rp.description, tr_rp.priority)
                         i = 0
                     else:
                         return True
@@ -485,9 +502,9 @@ class Task:
     def __str__(self):
         """Возвращает через функции print и str данные задачи без вложений в виде строки"""
         if self.priority:
-            pr = Fore.RED
+            pr = Fore.GREEN
         else:
-            pr = ''
+            pr = Fore.RED
         if self.hard:
             hr = 'Жёсткая!'
         else:
@@ -530,7 +547,7 @@ class Task:
         elif self.verify_start_end_type(start):
             fmt = self.verify_start_end_format(start)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__start = ''
+                self.__start = datetime.now().date()
             else:
                 self.__start = datetime.strptime(start, fmt)
 
@@ -547,7 +564,7 @@ class Task:
         elif self.verify_start_end_type(end):
             fmt = self.verify_start_end_format(end)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__end = ''
+                self.__end = (datetime.now() + timedelta(days=30)).date()
             else:
                 self.__end = datetime.strptime(end, fmt)
                 if self.__end <= self.__start:
@@ -670,6 +687,7 @@ class List_tasks:
         return d_l_t
 
     def decode(self, d_l_t):
+        '''Принимает словарь и сохраняет в объект список задач декодированных из словаря'''
         for key, value in d_l_t.items():
             value_without_child_tasks = {k: v for k, v in value.items() if k != 'child_tasks'}
             task = Task(**value_without_child_tasks)
@@ -817,17 +835,17 @@ class Json_store:
         """Читает данные из файла json"""
         with open(self.filename, 'r', encoding='utf-8') as file:
             dict_obj = json.load(file)
-        self.object_store = self.object_store.decode(dict_obj)
-        return self.object_store
+        self.object_store.decode(dict_obj)
+
 
 class cmd:
     def __init__(self, store_task, store_norm, store_hist, time_type):
         """Создаёт объект командной строки"""
         self.current = []
         self.s_t_d = store_task
-        self.s_n = store_norm
-        self.nm = self.s_n.load()
         self.s_t_d.load()
+        self.s_n = store_norm
+        self.s_n.load()
         self.current_list = self.s_t_d.object_store
         self.current_task = Task()
         self.store_hist = store_hist
@@ -874,7 +892,7 @@ class cmd:
                                 dig += i
                             else:
                                 mag += i
-                        du = self.nm.get_norm(mag) * float(dig)
+                        du = self.s_n.object_store.get_norm(mag) * float(dig)
                 s = input('Дата начала: ')
                 e = input('Дата конца: ')
                 c = input('Примечание: ')
@@ -1036,13 +1054,12 @@ class cmd:
             elif p == 'пи':                    #печать истории
                 print(self.store_hist.load())
             elif p == 'дн':                   #добавить норму
-                self.nm = self.s_n.load()
                 m = input('Норма: ')
                 n = float(input('Значение: '))
-                self.nm.add_norm(m, n)
+                self.s_n.add_norm(m, n)
                 self.s_n.save()
             elif p == 'пн':                   #печать норм
-                print(self.nm)
+                print(self.s_n)
             elif p == 'кал':                   #вывод запланированных задач в файл календаря
                 cl = Calendar_tasks()
                 cal_str = cl.add_events(tl)
