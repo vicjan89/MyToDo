@@ -242,13 +242,16 @@ class Time_line:
         return False
 
     def add_tasks(self, tasks):
+        '''Добавляет задачи на Time_line: сначала жёсткие, затем нежёсткие важные, затем нежёские неважные.
+        Если нежёсткая неважная задача неприблизилась к своему сроку окончания но ещё не размещена то она
+        размещается перед оставшимися важными.'''
         not_posted = []
-        for ts in tasks.get_hard():
-            if ts.start < self.__time_line[-1].end:
-                if not self.add_task(ts) and ts.repeat_mode == 0:
-                    not_posted.append(ts)
-        ts_ni = tasks.get_not_important()
-        ts_i = tasks.get_important()
+        for ts in tasks.get_hard():    #получаем список жёстких задач
+            if ts.start < self.__time_line[-1].end:     #проверяем что задача начинается ранее времени планирования
+                if not self.add_task(ts) and ts.repeat_mode == 0:         #если задача не повторяется и не размещена
+                    not_posted.append(ts)                                 #то добавляем в список не размещённых
+        ts_ni = tasks.get_not_important()      #список важных нежёстких
+        ts_i = tasks.get_important()          #список неважных нежёстких
         l_ni = len(ts_ni)
         l_i = len(ts_i)
         ni = 0
@@ -256,16 +259,19 @@ class Time_line:
         stop = True
         while stop:
             if i == l_i or (ni != l_ni and (ts_ni[ni].end < (self.get_time_after(ts_i[i].delta + ts_ni[ni].delta)))):
-                if ts_ni[ni].start < self.__time_line[-1].end:
-                    if not self.add_task(ts_ni[ni]):
-                        not_posted.append(ts_ni[ni])
-                ni += 1
+                '''если важные задачи закончились или 
+                текущая неважная задача не последняя и она будет просрочена в случае размещения ещё одной важной перед ней
+                '''
+                if ts_ni[ni].start < self.__time_line[-1].end: #если неважная задача попадает на линию планирования времени
+                    if not self.add_task(ts_ni[ni]):      #пытаемся разместить задачу
+                        not_posted.append(ts_ni[ni])     #в случае неразмещения добавляем с список неразмещённых задач
+                ni += 1                             #увеличиваем индекс текущей неважной задачи
             else:
-                if ts_i[i].start < self.__time_line[-1].end:
-                    if not self.add_task(ts_i[i]):
-                        not_posted.append(ts_i[i])
-                i += 1
-            if i == l_i and ni == l_ni:
+                if ts_i[i].start < self.__time_line[-1].end:   #если важная задача попадает на линию планирования времени
+                    if not self.add_task(ts_i[i]):               #пытаемся разместить задачу
+                        not_posted.append(ts_i[i])         #в случае неразмещения добавляем с список неразмещённых задач
+                i += 1                                  #увеличиваем индекс текущей важной задачи
+            if i == l_i and ni == l_ni:         #если задачи закончились то останавливаем цикл
                 stop = False
         return not_posted
 
@@ -547,7 +553,7 @@ class Task:
         elif self.verify_start_end_type(start):
             fmt = self.verify_start_end_format(start)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__start = datetime.now().date()
+                self.__start = datetime.now()
             else:
                 self.__start = datetime.strptime(start, fmt)
 
@@ -564,7 +570,7 @@ class Task:
         elif self.verify_start_end_type(end):
             fmt = self.verify_start_end_format(end)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__end = (datetime.now() + timedelta(days=30)).date()
+                self.__end = datetime.now() + timedelta(days=30)
             else:
                 self.__end = datetime.strptime(end, fmt)
                 if self.__end <= self.__start:
