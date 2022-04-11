@@ -553,7 +553,7 @@ class Task:
         elif self.verify_start_end_type(start):
             fmt = self.verify_start_end_format(start)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__start = datetime.now()
+                self.__start = datetime.now().replace(second=0, microsecond=0)
             else:
                 self.__start = datetime.strptime(start, fmt)
 
@@ -570,11 +570,11 @@ class Task:
         elif self.verify_start_end_type(end):
             fmt = self.verify_start_end_format(end)
             if fmt == '' or fmt == self.MISTAKE:
-                self.__end = datetime.now() + timedelta(days=30)
+                self.__end = datetime.now().replace(second=0, microsecond=0) + timedelta(days=30)
             else:
                 self.__end = datetime.strptime(end, fmt)
                 if self.__end <= self.__start:
-                    raise Exception('Окончание задачи раньше начала!')
+                    raise Exception('Окончание задачи раньше начала!'+ self.task)
 
     @property
     def delta(self):
